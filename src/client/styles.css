@@ -1,0 +1,3224 @@
+/* ==========================================================================
+   EYE-FRIENDLY SOFT MATTE DESIGN SYSTEM (DUAL LIGHT & DARK THEME)
+   Crafted with principles from:
+   - quieter & polish (Tinted neutrals, 70-80% saturation cap, stepped surfaces)
+   - emil-design-eng (Tactile :active scale(0.96), exact property transitions, hover media queries)
+   - modern-web-guidance (color-scheme, light-dark(), FOUC-free meta sync, forced-colors)
+   ========================================================================== */
+
+:root {
+  /* --- Light Mode Raw Tokens (Warm Alabaster & Soft Stone — Zero White Glare) --- */
+  --bg-canvas-light: #f3f1ec;
+  --bg-deep-light: #eae7e0;
+  --bg-recessed-light: #e3dfd7;
+  --bg-surface-light: #faf9f5;
+  --bg-surface-hover-light: #ffffff;
+  --bg-elevated-light: #ffffff;
+  --bg-pressed-light: #edeae2;
+  --bg-glass-light: rgba(250, 249, 245, 0.88);
+
+  --text-main-light: #22262c;
+  --text-muted-light: #565e6a;
+  --text-dim-light: #717a86;
+
+  --accent-primary-light: #3b6b82;
+  --accent-primary-hover-light: #315b70;
+  --accent-primary-soft-light: rgba(59, 107, 130, 0.12);
+  --accent-warm-light: #b55349;
+  --accent-warm-hover-light: #9e453c;
+  --accent-warm-soft-light: rgba(181, 83, 73, 0.12);
+  --accent-success-light: #3b7a5e;
+  --accent-warning-light: #b57c32;
+
+  --border-subtle-light: rgba(34, 38, 44, 0.12);
+  --border-strong-light: rgba(34, 38, 44, 0.24);
+  --border-focus-light: #3b6b82;
+  --focus-ring-light: rgba(59, 107, 130, 0.28);
+
+  --shadow-card-light: 0 2px 8px rgba(28, 31, 36, 0.05), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  --shadow-elevated-light: 0 10px 24px -6px rgba(28, 31, 36, 0.1), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  --shadow-tactile-light: 0 2px 5px rgba(28, 31, 36, 0.07), 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+
+  /* --- Dark Mode Raw Tokens (Matte Zinc-Slate — Zero Halation, No Pure Black) --- */
+  --bg-canvas-dark: #131519;
+  --bg-deep-dark: #171a20;
+  --bg-recessed-dark: #101216;
+  --bg-surface-dark: #1c2027;
+  --bg-surface-hover-dark: #232831;
+  --bg-elevated-dark: #242933;
+  --bg-pressed-dark: #171a20;
+  --bg-glass-dark: rgba(26, 30, 37, 0.88);
+
+  --text-main-dark: #e2e4e8;
+  --text-muted-dark: #969faa;
+  --text-dim-dark: #6d7683;
+
+  --accent-primary-dark: #6b9eb8;
+  --accent-primary-hover-dark: #7eb0ca;
+  --accent-primary-soft-dark: rgba(107, 158, 184, 0.15);
+  --accent-warm-dark: #cc655a;
+  --accent-warm-hover-dark: #d9756a;
+  --accent-warm-soft-dark: rgba(204, 101, 90, 0.16);
+  --accent-success-dark: #56a382;
+  --accent-warning-dark: #d6994c;
+
+  --border-subtle-dark: rgba(255, 255, 255, 0.09);
+  --border-strong-dark: rgba(255, 255, 255, 0.2);
+  --border-focus-dark: #6b9eb8;
+  --focus-ring-dark: rgba(107, 158, 184, 0.32);
+
+  --shadow-card-dark: 0 4px 12px rgba(0, 0, 0, 0.25), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-elevated-dark: 0 12px 28px -6px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.07) inset;
+  --shadow-tactile-dark: 0 3px 8px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+
+  /* --- Default Fallback Assignments (Light) --- */
+  --bg-void: var(--bg-canvas-light);
+  --bg-deep: var(--bg-deep-light);
+  --bg-recessed: var(--bg-recessed-light);
+  --bg-surface: var(--bg-surface-light);
+  --bg-surface-hover: var(--bg-surface-hover-light);
+  --bg-elevated: var(--bg-elevated-light);
+  --bg-pressed: var(--bg-pressed-light);
+  --bg-glass: var(--bg-glass-light);
+
+  --text-main: var(--text-main-light);
+  --text-muted: var(--text-muted-light);
+  --text-dim: var(--text-dim-light);
+
+  --accent-primary: var(--accent-primary-light);
+  --accent-primary-hover: var(--accent-primary-hover-light);
+  --accent-primary-soft: var(--accent-primary-soft-light);
+  --accent-warm: var(--accent-warm-light);
+  --accent-warm-hover: var(--accent-warm-hover-light);
+  --accent-warm-soft: var(--accent-warm-soft-light);
+  --accent-success: var(--accent-success-light);
+  --accent-warning: var(--accent-warning-light);
+
+  /* Legacy alias tokens for compatibility */
+  --accent-cyan: var(--accent-primary);
+  --accent-blue: var(--accent-primary);
+  --border-glass: var(--border-subtle);
+
+  --border-subtle: var(--border-subtle-light);
+  --border-strong: var(--border-strong-light);
+  --border-focus: var(--border-focus-light);
+  --focus-ring: var(--focus-ring-light);
+
+  --shadow-card: var(--shadow-card-light);
+  --shadow-elevated: var(--shadow-elevated-light);
+  --shadow-tactile: var(--shadow-tactile-light);
+
+  --card-radius: 1.1rem;
+
+  /* MANDATORY: Fallback for browsers without light-dark() support */
+  @media (prefers-color-scheme: dark) {
+    --bg-void: var(--bg-canvas-dark);
+    --bg-deep: var(--bg-deep-dark);
+    --bg-recessed: var(--bg-recessed-dark);
+    --bg-surface: var(--bg-surface-dark);
+    --bg-surface-hover: var(--bg-surface-hover-dark);
+    --bg-elevated: var(--bg-elevated-dark);
+    --bg-pressed: var(--bg-pressed-dark);
+    --bg-glass: var(--bg-glass-dark);
+
+    --text-main: var(--text-main-dark);
+    --text-muted: var(--text-muted-dark);
+    --text-dim: var(--text-dim-dark);
+
+    --accent-primary: var(--accent-primary-dark);
+    --accent-primary-hover: var(--accent-primary-hover-dark);
+    --accent-primary-soft: var(--accent-primary-soft-dark);
+    --accent-warm: var(--accent-warm-dark);
+    --accent-warm-hover: var(--accent-warm-hover-dark);
+    --accent-warm-soft: var(--accent-warm-soft-dark);
+    --accent-success: var(--accent-success-dark);
+    --accent-warning: var(--accent-warning-dark);
+
+    --border-subtle: var(--border-subtle-dark);
+    --border-strong: var(--border-strong-dark);
+    --border-focus: var(--border-focus-dark);
+    --focus-ring: var(--focus-ring-dark);
+
+    --shadow-card: var(--shadow-card-dark);
+    --shadow-elevated: var(--shadow-elevated-dark);
+    --shadow-tactile: var(--shadow-tactile-dark);
+  }
+
+  /* Modern light-dark() automatic resolution based on computed color-scheme */
+  @supports (color: light-dark(white, black)) {
+    --bg-void: light-dark(var(--bg-canvas-light), var(--bg-canvas-dark));
+    --bg-deep: light-dark(var(--bg-deep-light), var(--bg-deep-dark));
+    --bg-recessed: light-dark(var(--bg-recessed-light), var(--bg-recessed-dark));
+    --bg-surface: light-dark(var(--bg-surface-light), var(--bg-surface-dark));
+    --bg-surface-hover: light-dark(var(--bg-surface-hover-light), var(--bg-surface-hover-dark));
+    --bg-elevated: light-dark(var(--bg-elevated-light), var(--bg-elevated-dark));
+    --bg-pressed: light-dark(var(--bg-pressed-light), var(--bg-pressed-dark));
+    --bg-glass: light-dark(var(--bg-glass-light), var(--bg-glass-dark));
+
+    --text-main: light-dark(var(--text-main-light), var(--text-main-dark));
+    --text-muted: light-dark(var(--text-muted-light), var(--text-muted-dark));
+    --text-dim: light-dark(var(--text-dim-light), var(--text-dim-dark));
+
+    --accent-primary: light-dark(var(--accent-primary-light), var(--accent-primary-dark));
+    --accent-primary-hover: light-dark(var(--accent-primary-hover-light), var(--accent-primary-hover-dark));
+    --accent-primary-soft: light-dark(var(--accent-primary-soft-light), var(--accent-primary-soft-dark));
+    --accent-warm: light-dark(var(--accent-warm-light), var(--accent-warm-dark));
+    --accent-warm-hover: light-dark(var(--accent-warm-hover-light), var(--accent-warm-hover-dark));
+    --accent-warm-soft: light-dark(var(--accent-warm-soft-light), var(--accent-warm-soft-dark));
+    --accent-success: light-dark(var(--accent-success-light), var(--accent-success-dark));
+    --accent-warning: light-dark(var(--accent-warning-light), var(--accent-warning-dark));
+
+    --border-subtle: light-dark(var(--border-subtle-light), var(--border-subtle-dark));
+    --border-strong: light-dark(var(--border-strong-light), var(--border-strong-dark));
+    --border-focus: light-dark(var(--border-focus-light), var(--border-focus-dark));
+    --focus-ring: light-dark(var(--focus-ring-light), var(--focus-ring-dark));
+  }
+
+  /* MANDATORY: Viewport-wide native UI adaptation & <meta name="color-scheme"> override sync */
+  color-scheme: light dark;
+  accent-color: var(--accent-primary);
+
+  --scrollbar-thumb: light-dark(#b8b4aa, #3e4552);
+  --scrollbar-track: light-dark(#eae7e0, #171a20);
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+    --shadow-card: var(--shadow-card-dark);
+    --shadow-elevated: var(--shadow-elevated-dark);
+    --shadow-tactile: var(--shadow-tactile-dark);
+  }
+
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+    --shadow-card: var(--shadow-card-light);
+    --shadow-elevated: var(--shadow-elevated-light);
+    --shadow-tactile: var(--shadow-tactile-light);
+  }
+}
+
+/* Legacy scrollbar fallback for older WebKit browsers */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+}
+
+/* Reinforce low-contrast boundaries when user requests higher contrast */
+@media (prefers-contrast: more) {
+  :root {
+    --border-subtle-light: rgba(20, 24, 28, 0.38);
+    --border-strong-light: rgba(20, 24, 28, 0.65);
+    --border-subtle-dark: rgba(255, 255, 255, 0.38);
+    --border-strong-dark: rgba(255, 255, 255, 0.68);
+  }
+}
+
+/* Forced Colors Mode (Windows High Contrast) accessibility support */
+@media (forced-colors: active) {
+  [data-spatial-item="true"]:focus,
+  [data-spatial-item="true"]:focus-visible,
+  .remote-dpad-btn:focus-visible,
+  .remote-btn:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background-color: var(--bg-void);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ==========================================================================
+   10-FOOT TV INTERFACE (/tv) — Quiet Matte Living-Room Style
+   ========================================================================== */
+
+.tv-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.65rem 2.75rem 2.5rem;
+  gap: 1.75rem;
+  position: relative;
+  background-color: var(--bg-void);
+}
+
+/* Spatial Focus Ring — Calm, tactile elevation without harsh neon glare */
+[data-spatial-item="true"] {
+  position: relative;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 160ms ease,
+              border-color 160ms ease,
+              background-color 160ms ease;
+}
+
+[data-spatial-item="true"]:focus,
+[data-spatial-item="true"]:focus-visible {
+  outline: none !important;
+  transform: translateY(-2px) scale(1.015) !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 3px var(--focus-ring), var(--shadow-elevated) !important;
+  z-index: 10;
+}
+
+[data-spatial-item="true"]:active {
+  transform: scale(0.98) !important;
+}
+
+/* Clean Minimal Topbar */
+.tv-topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.9rem 1.4rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.15rem;
+  box-shadow: var(--shadow-card);
+}
+
+.tv-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.tv-brand-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.tv-brand-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.tv-topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.tv-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.38rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.tv-status-pill.is-online .tv-status-dot {
+  background: var(--accent-success);
+}
+
+.tv-status-pill.is-offline .tv-status-dot {
+  background: var(--accent-warning);
+}
+
+.tv-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tv-clock {
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  margin-left: 0.35rem;
+  color: var(--text-main);
+}
+
+.tv-btn-icon {
+  padding: 0.68rem 0.9rem;
+}
+
+.tv-floating-toast {
+  position: fixed;
+  inset-block-end: 1.5rem;
+  inset-inline-end: 1.75rem;
+  z-index: 45;
+  max-inline-size: 28rem;
+  padding: 0.8rem 1.25rem;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border-focus);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow-elevated);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  pointer-events: none;
+}
+
+.tv-mobile-warning-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: color-mix(in oklab, #e67e22 15%, var(--bg-surface));
+  border: 1px solid color-mix(in oklab, #e67e22 45%, transparent);
+  border-radius: 1rem;
+  padding: 0.9rem 1.2rem;
+  margin: 1rem 1.5rem 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 50;
+}
+
+.tv-mobile-warning-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tv-mobile-warning-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.tv-mobile-warning-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.tv-mobile-warning-text strong {
+  font-size: 0.98rem;
+  color: #e67e22;
+}
+
+.tv-mobile-warning-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tv-mobile-warning-actions a,
+.tv-mobile-warning-actions button {
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+  text-align: center;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.tv-btn {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  box-shadow: var(--shadow-tactile);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 160ms ease,
+              border-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-btn:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+}
+
+.tv-btn:active {
+  transform: scale(0.97);
+  background: var(--bg-pressed);
+}
+
+.tv-btn-primary {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-btn-primary:hover {
+    background: var(--accent-primary-hover);
+    border-color: transparent;
+  }
+}
+
+.tv-btn-accent {
+  background: var(--accent-warm);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-btn-accent:hover {
+    background: var(--accent-warm-hover);
+    border-color: transparent;
+  }
+}
+
+.tv-btn-secondary {
+  background: var(--bg-deep);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+}
+
+.tv-telemetry-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.35rem;
+  background: var(--accent-primary-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.9rem;
+  font-size: 0.98rem;
+  color: var(--text-main);
+}
+
+.tv-telemetry-label {
+  color: var(--text-muted);
+  margin-right: 0.45rem;
+}
+
+.tv-popup-alert {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--accent-warning);
+  border-radius: 1rem;
+  font-size: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.tv-popup-alert-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Home Content */
+.tv-home-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  flex: 1;
+}
+
+.tv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tv-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tv-section-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-main);
+}
+
+.tv-section-hint {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* Search Form */
+.tv-search-form {
+  display: flex;
+  gap: 0.85rem;
+}
+
+.tv-search-input {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.95rem;
+  padding: 0.9rem 1.35rem;
+  font-size: 1.1rem;
+  color: var(--text-main);
+  box-shadow: var(--shadow-card);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.tv-search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.tv-search-input:focus {
+  outline: none;
+  background: var(--bg-elevated);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.tv-search-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.35rem;
+  background: var(--bg-surface);
+  border-radius: 0.95rem;
+  border: 1px solid var(--border-subtle);
+}
+
+/* TV Card Grids */
+.tv-card-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.tv-card-grid-series {
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+}
+
+.tv-card-grid-platforms {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+
+.tv-card-grid-dizi {
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+}
+
+.tv-card-grid-bookmarks {
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+}
+
+/* Visual Series Media Card (Photo on Top + Clean Title & Episode below) */
+.tv-series-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  padding: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-series-card:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+}
+
+.tv-series-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--bg-recessed);
+  overflow: hidden;
+}
+
+.tv-series-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-series-card:hover .tv-series-img {
+    transform: scale(1.04);
+  }
+}
+
+.tv-series-card:focus-visible .tv-series-img,
+.tv-series-card:focus .tv-series-img {
+  transform: scale(1.04);
+}
+
+.tv-series-play-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16, 18, 22, 0.04) 40%, rgba(16, 18, 22, 0.48) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0.65rem 0.75rem;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.tv-series-play-overlay span {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #181c22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  padding-left: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-series-card:hover .tv-series-play-overlay {
+    opacity: 1;
+  }
+}
+
+.tv-series-card:focus-visible .tv-series-play-overlay,
+.tv-series-card:focus .tv-series-play-overlay {
+  opacity: 1;
+}
+
+.tv-series-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  padding: 0.85rem 1.05rem 0.95rem;
+}
+
+.tv-series-title {
+  font-size: 1.08rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-series-ep {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-youtube-tag {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.65rem;
+  background: rgba(225, 29, 72, 0.94);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.tv-section-count {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* Soft Matte Shortcut Card */
+.tv-shortcut-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid color-mix(in oklab, var(--card-accent, var(--accent-primary)) 60%, var(--bg-surface));
+  border-radius: var(--card-radius);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-shortcut-card:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+    border-left-color: color-mix(in oklab, var(--card-accent, var(--accent-primary)) 75%, var(--bg-surface));
+  }
+}
+
+.tv-shortcut-card-compact {
+  padding: 0.9rem 1.1rem;
+}
+
+/* Platform / Site Icon Container */
+.tv-shortcut-badge {
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 0.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  color: color-mix(in oklab, var(--card-accent, var(--accent-primary)) 65%, var(--text-main));
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0.35rem;
+}
+
+.tv-shortcut-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0.45rem;
+  display: block;
+}
+
+.tv-shortcut-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow: hidden;
+}
+
+.tv-shortcut-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+}
+
+.tv-shortcut-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bookmark Card */
+.tv-bookmark-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.15rem 1.3rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-top: 3px solid color-mix(in oklab, var(--card-accent, var(--accent-primary)) 58%, var(--bg-surface));
+  border-radius: var(--card-radius);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-bookmark-card:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+}
+
+.tv-bookmark-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card-accent, var(--accent-primary)) 18%, var(--bg-deep));
+  border: 1px solid color-mix(in oklab, var(--card-accent, var(--accent-primary)) 34%, var(--border-subtle));
+  color: color-mix(in oklab, var(--card-accent, var(--accent-primary)) 65%, var(--text-main));
+}
+
+.tv-bookmark-title {
+  font-size: 1.06rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+
+.tv-bookmark-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Video Search Results */
+.tv-video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.15rem;
+  margin-top: 0.75rem;
+}
+
+.tv-video-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+
+.tv-video-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--bg-recessed);
+}
+
+.tv-video-card-body {
+  padding: 0.95rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tv-video-card-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+
+.tv-video-card-channel {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+/* TV YouTube Player View */
+.tv-player-stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 1.15rem;
+  position: relative;
+  z-index: 2;
+}
+
+.tv-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.15rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-surface);
+  border-radius: 1.1rem;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.tv-player-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  overflow: hidden;
+}
+
+.tv-badge-live {
+  background: var(--accent-warm-soft);
+  color: var(--accent-warm);
+  border: 1px solid color-mix(in oklab, var(--accent-warm) 35%, transparent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tv-player-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+}
+
+.tv-player-channel {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tv-player-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.tv-player-viewport-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 68vh;
+  background: #0d0f12;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-elevated);
+}
+
+.tv-player-iframe-container,
+.tv-player-iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 68vh;
+  border: 0;
+  display: block;
+}
+
+.tv-player-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-glass);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.25rem;
+  text-align: center;
+  gap: 1.1rem;
+  backdrop-filter: blur(12px);
+}
+
+.tv-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: tv-spin 0.85s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+}
+
+@keyframes tv-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tv-error-icon {
+  font-size: 3.25rem;
+}
+
+.tv-overlay-title {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.tv-overlay-sub {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+.tv-error-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+/* Footer */
+.tv-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.tv-footer kbd {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  padding: 0.18rem 0.48rem;
+  border-radius: 0.38rem;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+/* Modal Dialog (Light Dismiss) */
+.tv-qr-dialog {
+  margin: auto;
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  max-width: 500px;
+  width: 92%;
+  box-shadow: var(--shadow-elevated);
+}
+
+.tv-qr-dialog::backdrop {
+  background-color: rgba(15, 18, 24, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.tv-qr-dialog-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+}
+
+.tv-qr-box {
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.tv-qr-url-box {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--accent-primary-soft);
+  border: 1px solid color-mix(in oklab, var(--accent-primary) 30%, transparent);
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.7rem;
+}
+
+.tv-qr-tips {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-left: 1.15rem;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   iPHONE SAFARI REMOTE INTERFACE (/remote) — Tactile Matte Hardware Remote
+   ========================================================================== */
+
+.remote-shell {
+  max-width: 440px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-void);
+  padding-bottom: calc(4.1rem + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  overflow-x: hidden;
+}
+
+.remote-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg-glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.42rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.remote-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.remote-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.remote-app-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--accent-primary) 14%, transparent);
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.remote-title-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.remote-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-main);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.remote-subtitle {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.remote-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.remote-theme-btn {
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-tactile);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease;
+}
+
+.remote-theme-btn:active {
+  transform: scale(0.92);
+  background: var(--bg-pressed);
+}
+
+.remote-conn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: var(--shadow-tactile);
+}
+
+.remote-conn-badge.is-online .remote-conn-dot {
+  background: var(--accent-success);
+}
+
+.remote-conn-badge.is-offline .remote-conn-dot {
+  background: var(--accent-warm);
+}
+
+.remote-conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.remote-toast {
+  position: fixed;
+  top: calc(0.85rem + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid color-mix(in oklab, var(--accent-primary) 40%, var(--border-subtle));
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  text-align: center;
+  z-index: 200;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  animation: toastFadeIn 160ms ease-out;
+}
+
+@keyframes toastFadeIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.remote-launch-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: color-mix(in oklab, var(--accent-primary) 12%, var(--bg-surface));
+  border: 1px solid color-mix(in oklab, var(--accent-primary) 35%, transparent);
+  border-radius: 0.65rem;
+  padding: 0.35rem 0.65rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.remote-launch-info {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.remote-launch-icon {
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+}
+
+.remote-launch-btn {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.remote-launch-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+/* Now Playing Bar on Phone */
+.remote-now-playing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  box-shadow: var(--shadow-card);
+}
+
+.remote-np-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.remote-np-status {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.remote-np-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+}
+
+.remote-np-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.remote-np-btn {
+  background: var(--accent-primary);
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  padding: 0.32rem 0.6rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.remote-np-btn-ext {
+  background: var(--bg-deep);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+}
+
+.remote-error-banner {
+  background: var(--accent-warm-soft);
+  border: 1px solid color-mix(in oklab, var(--accent-warm) 45%, transparent);
+  border-radius: 0.85rem;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-main);
+}
+
+.remote-body {
+  flex: 1;
+  padding: 1.1rem;
+}
+
+.remote-tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.remote-tab-pane-mouse {
+  gap: 0.4rem;
+  height: 100%;
+  flex: 1;
+}
+
+/* Quick Actions Row — Minimum 48px touch targets */
+.remote-quick-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+
+.remote-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 4.3rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: var(--shadow-tactile);
+  transition: transform 130ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 150ms ease,
+              border-color 150ms ease;
+}
+
+.remote-action-btn:active {
+  transform: scale(0.95);
+  background: var(--bg-pressed);
+}
+
+.remote-action-primary {
+  background: var(--accent-primary-soft);
+  border-color: color-mix(in oklab, var(--accent-primary) 38%, var(--border-subtle));
+  color: var(--text-main);
+}
+
+.remote-action-btn.is-active-danger {
+  background: var(--accent-warm-soft);
+  border-color: var(--accent-warm);
+  color: var(--accent-warm);
+}
+
+.remote-action-icon {
+  font-size: 1.35rem;
+}
+
+/* Tactile Matte Recessed D-Pad & Volume Chassis */
+.remote-dpad-card,
+.remote-volume-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.35rem;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  box-shadow: var(--shadow-card);
+}
+
+.remote-card-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.remote-dpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 4.7rem);
+  grid-template-rows: repeat(3, 4.7rem);
+  gap: 0.6rem;
+  justify-content: center;
+  margin: 0.25rem auto;
+  padding: 0.75rem;
+  background: var(--bg-recessed);
+  border-radius: 1.75rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.remote-dpad-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.15rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: var(--shadow-tactile);
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 140ms ease,
+              border-color 140ms ease;
+}
+
+.remote-dpad-btn:active {
+  transform: scale(0.93);
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.remote-dpad-ok {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 1.08rem;
+  font-weight: 700;
+  border-color: transparent;
+  box-shadow: var(--shadow-tactile);
+}
+
+.remote-dpad-ok:active {
+  transform: scale(0.91);
+  background: var(--accent-primary-hover);
+}
+
+/* Volume Card */
+.remote-volume-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.remote-volume-slider {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.remote-volume-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.remote-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.85rem;
+  padding: 0.6rem 0.95rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-tactile);
+  transition: transform 130ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease;
+}
+
+.remote-btn:active {
+  transform: scale(0.96);
+}
+
+.remote-btn-accent {
+  background: var(--accent-warm);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.remote-btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+}
+
+.remote-btn-danger {
+  background: var(--accent-warm-soft);
+  color: var(--accent-warm);
+  border-color: color-mix(in oklab, var(--accent-warm) 35%, var(--border-subtle));
+}
+
+.remote-btn-full {
+  width: 100%;
+}
+
+.remote-btn-sm {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Search Tab */
+.remote-search-form {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.remote-search-input {
+  flex: 1;
+  min-height: 2.95rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.85rem;
+  padding: 0.65rem 0.95rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  box-shadow: var(--shadow-card);
+}
+
+.remote-search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.remote-search-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.remote-direct-link-card,
+.remote-alert-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.95rem;
+  padding: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-card);
+}
+
+.remote-empty-state {
+  text-align: center;
+  padding: 2.25rem 1.15rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.remote-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.remote-video-item {
+  display: flex;
+  gap: 0.8rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.95rem;
+  padding: 0.7rem;
+  align-items: center;
+  box-shadow: var(--shadow-card);
+}
+
+.remote-video-thumb {
+  width: 120px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 0.6rem;
+  flex-shrink: 0;
+  background: var(--bg-recessed);
+}
+
+.remote-video-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.remote-video-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-main);
+}
+
+.remote-video-channel {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.remote-video-actions {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.remote-removed-drawer {
+  background: var(--bg-deep);
+  border: 1px dashed var(--border-strong);
+  border-radius: 0.9rem;
+  padding: 0.8rem;
+  margin: 0.5rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.remote-removed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.remote-removed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.remote-removed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.65rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.6rem;
+}
+
+.remote-removed-title {
+  font-size: 0.82rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* YouTube Tab: iPhone Share Shortcut Helper (Discreet Footer Placement) */
+.remote-share-setup-details {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.remote-share-setup-details[open] {
+  border-color: var(--border-strong);
+}
+
+.remote-share-setup-summary {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  outline: none;
+}
+
+.remote-share-setup-summary::-webkit-details-marker {
+  display: none;
+}
+
+.remote-share-setup-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.remote-details-chevron {
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.remote-share-setup-details[open] .remote-details-chevron {
+  transform: rotate(180deg);
+}
+
+.remote-share-setup-body {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-main);
+}
+
+.remote-share-setup-code {
+  display: block;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.45rem;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border-subtle);
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--text-main);
+}
+
+.remote-share-setup-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.remote-share-setup-hidden-footer {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  padding: 0.25rem 0;
+}
+
+.remote-btn-text-muted {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.remote-btn-text-muted:hover,
+.remote-btn-text-muted:active {
+  color: var(--text-muted);
+  background: var(--bg-recessed);
+}
+
+/* Platforms Tab */
+.remote-section-heading {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+}
+
+.remote-shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.7rem;
+}
+
+.remote-shortcut-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 3.5px solid color-mix(in oklab, var(--btn-accent, var(--accent-primary)) 60%, var(--bg-surface));
+  border-radius: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 130ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease;
+}
+
+.remote-shortcut-btn:active {
+  transform: scale(0.96);
+  background: var(--bg-pressed);
+}
+
+.remote-shortcut-badge {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  color: color-mix(in oklab, var(--btn-accent, var(--accent-primary)) 65%, var(--text-main));
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0.3rem;
+}
+
+.remote-shortcut-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0.4rem;
+  display: block;
+}
+
+.remote-shortcut-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.remote-shortcut-text strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+}
+
+.remote-shortcut-text small {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bookmarks Tab */
+.remote-bookmark-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.remote-bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 0.95rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 130ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease;
+}
+
+.remote-bookmark-item:active {
+  transform: scale(0.97);
+  background: var(--bg-pressed);
+}
+
+.remote-series-thumb {
+  width: 4.6rem;
+  height: 2.7rem;
+  object-fit: cover;
+  border-radius: 0.55rem;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.remote-bookmark-badge {
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.76rem;
+  background: color-mix(in oklab, var(--btn-accent, var(--accent-primary)) 18%, var(--bg-deep));
+  border: 1px solid color-mix(in oklab, var(--btn-accent, var(--accent-primary)) 35%, var(--border-subtle));
+  color: color-mix(in oklab, var(--btn-accent, var(--accent-primary)) 65%, var(--text-main));
+  flex-shrink: 0;
+}
+
+.remote-bookmark-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.remote-bookmark-text strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+
+.remote-bookmark-text small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Segmented Control for Combined Media (Platformlar & Diziler) Tab */
+.remote-segmented-control {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  padding: 0.22rem;
+  gap: 0.3rem;
+  box-shadow: var(--shadow-tactile);
+}
+
+.remote-segment-btn {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  border-radius: 0.65rem;
+  padding: 0.48rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.remote-segment-btn:active {
+  transform: scale(0.97);
+}
+
+.remote-segment-btn.is-active {
+  background: var(--accent-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+.remote-segment-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.remote-segment-btn:not(.is-active) .remote-segment-badge {
+  background: var(--border-subtle);
+  color: var(--text-muted);
+}
+
+/* Compact Bottom Navigation Dock */
+.remote-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 440px;
+  margin: 0 auto;
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0.32rem 0.35rem calc(0.32rem + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+}
+
+.remote-nav-tab {
+  background: transparent;
+  border: 0;
+  padding: 0.35rem 0.15rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 0.65rem;
+  transition: color 140ms ease, background-color 140ms ease, transform 100ms ease;
+}
+
+.remote-nav-tab:active {
+  transform: scale(0.94);
+}
+
+.remote-nav-tab.is-active {
+  color: var(--accent-primary);
+  background: color-mix(in oklab, var(--accent-primary) 12%, transparent);
+}
+
+.remote-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+}
+
+@keyframes remote-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.remote-spin {
+  animation: remote-spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   APP & TAB CUSTOMIZATION (HIDE, DELETE, REORDER) + SCOPED TRANSITIONS
+   ========================================================================== */
+
+.tv-section {
+  view-transition-scope: all;
+}
+
+.tv-card-item-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  view-transition-name: match-element;
+  border-radius: var(--card-radius);
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.tv-card-item-shell .tv-shortcut-card,
+.tv-card-item-shell .tv-series-card,
+.tv-card-item-shell .tv-bookmark-card {
+  width: 100%;
+  flex: 1;
+}
+
+.tv-card-item-shell.is-editing {
+  background: var(--bg-deep);
+  border: 1px dashed var(--border-strong);
+  padding: 0.45rem;
+}
+
+.tv-card-item-shell.is-drag-over {
+  border: 2px solid var(--accent-primary);
+  background: var(--accent-primary-soft);
+  transform: scale(1.015);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+.tv-btn-sm {
+  padding: 0.48rem 0.9rem;
+  font-size: 0.88rem;
+  border-radius: 0.7rem;
+}
+
+.tv-btn-ghost {
+  background: transparent;
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tv-btn-ghost:hover {
+    color: var(--text-main);
+    background: var(--bg-deep);
+  }
+}
+
+.tv-section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.tv-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.tv-section-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.tv-section.is-section-editing {
+  padding: 1.2rem 1.4rem;
+  border-radius: 1.35rem;
+  border: 1px dashed var(--border-strong);
+  background: var(--bg-deep);
+}
+
+.tv-section.is-section-hidden {
+  opacity: 0.72;
+  border-color: var(--accent-warning);
+}
+
+.tv-hidden-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent-warning) 18%, var(--bg-surface));
+  border: 1px solid color-mix(in oklab, var(--accent-warning) 45%, transparent);
+  color: var(--accent-warning);
+}
+
+.tv-hidden-count-btn {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* Edit Mode Top Panel on TV */
+.tv-edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.3rem 1.6rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-focus);
+  border-radius: 1.35rem;
+  box-shadow: var(--shadow-card);
+}
+
+.tv-edit-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.15rem;
+  flex-wrap: wrap;
+}
+
+.tv-edit-panel-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.tv-edit-panel-desc {
+  font-size: 0.94rem;
+  color: var(--text-muted);
+  margin-top: 0.22rem;
+}
+
+.tv-edit-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.tv-edit-sections-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.tv-edit-sections-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tv-edit-sections-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.tv-edit-section-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.7rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.8rem;
+}
+
+.tv-edit-section-chip.is-hidden {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.tv-edit-section-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-right: 0.2rem;
+  color: var(--text-main);
+}
+
+/* Card Action Toolbar (Reorder / Hide / Delete) */
+.tv-card-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.38rem;
+  padding-top: 0.15rem;
+}
+
+.tv-card-ctrl-btn {
+  flex: 1;
+  min-height: 2.25rem;
+  padding: 0.32rem 0.5rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.tv-card-ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tv-card-ctrl-hide {
+  background: color-mix(in oklab, var(--accent-warning) 14%, var(--bg-elevated));
+  border-color: color-mix(in oklab, var(--accent-warning) 35%, var(--border-subtle));
+  color: var(--text-main);
+}
+
+.tv-card-ctrl-show {
+  background: color-mix(in oklab, var(--accent-success) 15%, var(--bg-elevated));
+  border-color: color-mix(in oklab, var(--accent-success) 35%, var(--border-subtle));
+  color: var(--text-main);
+}
+
+.tv-card-ctrl-delete {
+  background: var(--accent-warm-soft);
+  border-color: color-mix(in oklab, var(--accent-warm) 35%, var(--border-subtle));
+  color: var(--accent-warm);
+}
+
+/* Hidden Items Drawer inside each Section */
+.tv-hidden-drawer {
+  margin-top: 0.6rem;
+  padding: 0.95rem 1.15rem;
+  background: var(--bg-deep);
+  border: 1px dashed var(--border-strong);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.tv-hidden-drawer-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tv-hidden-items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tv-hidden-item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.7rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+}
+
+.tv-hidden-item-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tv-hidden-item-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-right: 0.2rem;
+}
+
+.tv-empty-category {
+  padding: 1.25rem;
+  border-radius: 0.95rem;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tv-hidden-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.3rem;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 1rem;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+/* Add New Shortcut Dialog Form */
+.tv-add-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  text-align: left;
+}
+
+.tv-add-dialog-sub {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.tv-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tv-form-field-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tv-form-input {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.96rem;
+  color: var(--text-main);
+}
+
+.tv-form-input option {
+  background: var(--bg-surface);
+  color: var(--text-main);
+}
+
+.tv-form-color {
+  width: 3.25rem;
+  height: 2.15rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.45rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tv-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 0.45rem;
+}
+
+/* iPhone Remote Edit Controls */
+.remote-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.remote-sections-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.8rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.95rem;
+  box-shadow: var(--shadow-card);
+}
+
+.remote-section-edit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.42rem 0.55rem;
+  background: var(--bg-deep);
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.remote-section-edit-row.is-hidden {
+  opacity: 0.55;
+}
+
+.remote-shortcut-card-wrap,
+.remote-bookmark-row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.remote-shortcut-card-wrap .remote-shortcut-btn,
+.remote-bookmark-row-wrap .remote-bookmark-item {
+  width: 100%;
+}
+
+.remote-shortcut-card-wrap.is-hidden,
+.remote-bookmark-row-wrap.is-hidden {
+  opacity: 0.55;
+}
+
+.remote-item-edit-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.remote-mini-btn {
+  flex: 1;
+  min-height: 1.95rem;
+  padding: 0.22rem 0.42rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 0.48rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remote-mini-btn:disabled {
+  opacity: 0.35;
+}
+
+.remote-mini-btn-danger {
+  background: var(--accent-warm-soft);
+  border-color: color-mix(in oklab, var(--accent-warm) 35%, var(--border-subtle));
+  color: var(--accent-warm);
+}
+
+.remote-active-tab-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-accent);
+  border-radius: 0.9rem;
+  padding: 0.85rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.remote-active-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-cyan);
+}
+
+.remote-active-tab-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remote-bookmark-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.remote-bookmark-row-top .remote-bookmark-item {
+  flex: 1;
+}
+
+.remote-advance-btn {
+  flex-shrink: 0;
+  padding: 0.45rem 0.65rem;
+  min-height: 2.4rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-accent);
+  background: var(--accent-cyan-soft, rgba(8, 145, 178, 0.15));
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.remote-advance-btn:active {
+  transform: scale(0.96);
+  background: var(--accent-cyan);
+  color: #fff;
+}
+
+/* ==========================================================================
+   🖱️ iPhone Remote Touchpad & Wireless Mouse Controls
+   ========================================================================== */
+
+.touchpad-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  height: calc(100dvh - 9.2rem);
+  min-height: 480px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 1. Quick Series & Video Media Bar */
+.touchpad-media-bar {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  box-shadow: var(--shadow-tactile);
+}
+
+.touchpad-series-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.touchpad-media-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 0.7fr 0.7fr 0.7fr;
+  gap: 0.35rem;
+}
+
+.touchpad-media-btn {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.7rem;
+  min-height: 2.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 100ms ease, background-color 150ms ease;
+}
+
+.touchpad-media-btn:active {
+  transform: scale(0.94);
+  background: var(--border-subtle);
+}
+
+.touchpad-media-btn-primary {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.touchpad-media-btn-primary:active {
+  background: color-mix(in oklab, var(--accent-primary) 85%, black);
+}
+
+.touchpad-media-btn.is-muted-active {
+  background: var(--accent-warm-soft);
+  color: var(--accent-warm);
+  border-color: var(--accent-warm);
+}
+
+.touchpad-settings-trigger {
+  font-size: 0.95rem;
+  background: color-mix(in oklab, var(--accent-primary) 10%, var(--bg-deep));
+  border-color: color-mix(in oklab, var(--accent-primary) 30%, var(--border-subtle));
+}
+
+/* 2. Full-Height Touchpad Surface + Floating Overlay Scroll Strip */
+.touchpad-surface-row {
+  display: flex;
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  width: 100%;
+}
+
+.touchpad-surface {
+  flex: 1;
+  position: relative;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-subtle);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  touch-action: none;
+  cursor: crosshair;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.12), var(--shadow-tactile);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  transition: border-color 150ms ease;
+}
+
+.touchpad-surface:active {
+  border-color: color-mix(in oklab, var(--accent-primary) 50%, var(--border-subtle));
+}
+
+.touchpad-ripple {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  margin-top: -22px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent-primary) 20%, transparent);
+  border: 2px solid color-mix(in oklab, var(--accent-primary) 60%, transparent);
+  pointer-events: none;
+  animation: touchpad-pulse 400ms cubic-bezier(0, 0, 0.2, 1) infinite alternate;
+}
+
+@keyframes touchpad-pulse {
+  0% { transform: scale(0.85); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 0.4; }
+}
+
+.touchpad-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+  pointer-events: none;
+  max-width: 240px;
+  opacity: 0.7;
+}
+
+.touchpad-hint-icon {
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+/* Floating Overlay Scroll Strip */
+.touchpad-scroll-strip {
+  position: absolute;
+  right: 8px;
+  top: 10px;
+  bottom: 10px;
+  width: 36px;
+  background: color-mix(in oklab, var(--bg-void) 55%, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  touch-action: none;
+  cursor: ns-resize;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+  transition: all 150ms ease;
+}
+
+.touchpad-scroll-strip:active {
+  background: color-mix(in oklab, var(--accent-primary) 22%, var(--bg-surface));
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--accent-primary) 40%, transparent);
+}
+
+.touchpad-scroll-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.touchpad-scroll-thumb {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* 3. Ergonomic Bottom Mouse Buttons */
+.touchpad-buttons-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.8fr;
+  gap: 0.38rem;
+}
+
+.touchpad-btn {
+  min-height: 2.6rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-tactile);
+  transition: transform 90ms ease, background-color 120ms ease;
+}
+
+.touchpad-btn:active {
+  transform: scale(0.95);
+  background: var(--bg-deep);
+}
+
+.touchpad-btn-left {
+  background: color-mix(in oklab, var(--accent-primary) 15%, var(--bg-surface));
+  border-color: color-mix(in oklab, var(--accent-primary) 35%, var(--border-subtle));
+  color: var(--text-main);
+  font-size: 0.86rem;
+}
+
+.touchpad-btn-left:active {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+
+.touchpad-btn-right {
+  background: var(--bg-surface);
+}
+
+.touchpad-btn-right:active {
+  background: var(--border-subtle);
+}
+
+.touchpad-btn-lock.is-active-lock {
+  background: var(--accent-warm);
+  color: #ffffff;
+  border-color: transparent;
+  animation: touchpad-pulse 600ms infinite alternate;
+}
+
+/* 4. Settings Drawer / Bottom Sheet Modal */
+.touchpad-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 180ms ease-out;
+}
+
+.touchpad-sheet {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-bottom: 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  width: 100%;
+  max-width: 440px;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 0.75rem 1.1rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
+  animation: slideUp 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.touchpad-sheet-handle {
+  width: 38px;
+  height: 4px;
+  background: var(--text-dim);
+  opacity: 0.4;
+  border-radius: 999px;
+  margin: 0.25rem auto 0.75rem;
+}
+
+.touchpad-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.touchpad-sheet-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.touchpad-sheet-close {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.touchpad-sheet-close:active {
+  background: var(--border-subtle);
+}
+
+.touchpad-sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.touchpad-sheet-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--bg-deep);
+  padding: 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.touchpad-sheet-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.touchpad-sheet-label-row strong {
+  color: var(--accent-primary);
+  font-size: 0.9rem;
+}
+
+.touchpad-sheet-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.touchpad-sheet-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.touchpad-setting-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 120ms ease;
+  text-align: center;
+}
+
+.touchpad-setting-chip.is-selected {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.touchpad-sheet-toggles {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-deep);
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.touchpad-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.75rem;
+}
+
+.touchpad-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.touchpad-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.touchpad-toggle-text strong {
+  font-size: 0.82rem;
+  color: var(--text-main);
+}
+
+.touchpad-toggle-text small {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* iOS Style Switch */
+.touchpad-switch {
+  width: 44px;
+  height: 26px;
+  background: var(--border-subtle);
+  border: 0;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 180ms ease;
+  flex-shrink: 0;
+  padding: 2px;
+}
+
+.touchpad-switch.is-on {
+  background: var(--accent-primary);
+}
+
+.touchpad-switch-thumb {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(0);
+}
+
+.touchpad-switch.is-on .touchpad-switch-thumb {
+  transform: translateX(18px);
+}
+
+/* Gesture Guide */
+.touchpad-gesture-guide {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.touchpad-guide-title {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.2rem;
+}
+
+.touchpad-guide-item span {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+

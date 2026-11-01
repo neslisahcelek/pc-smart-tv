@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+
+# Logs & OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Persisted TV layout preferences
+.tv-layout.json
+
+# Local series progress & temporary data
+data/*.json
+data/*.tmp
+data/*.tmp.*
+!data/.gitkeep
