@@ -148,10 +148,13 @@ function describeCommandInTurkish(
         ENTER: 'Seç (Enter)',
         K: 'Oynat / Durdur (K)',
         TAB: 'Sekme (Tab)',
-        BACKSPACE: 'Geri Silme'
+        BACKSPACE: 'Geri Silme',
+        DELETE: 'İleri Sil (Del)'
       };
       return `Tuş: ${keyMap[msg.key] ?? msg.key}`;
     }
+    case 'TYPE_TEXT':
+      return `Metin Yazma: "${msg.text.length > 20 ? msg.text.slice(0, 20) + '...' : msg.text}"`;
     default:
       return msg.type;
   }
@@ -465,6 +468,16 @@ export class WsHub {
       if (msg.key === 'SPACE') {
         this.systemAudio.sendMediaPlayPause();
       }
+      this.state.lastCommandLabel = describeCommandInTurkish(
+        msg,
+        this.state.shortcuts,
+        this.state.sections ?? DEFAULT_TV_SECTIONS
+      );
+      this.state.lastCommandAt = Date.now();
+      return;
+    }
+    if (msg.type === 'TYPE_TEXT') {
+      this.systemAudio.sendText(msg.text);
       this.state.lastCommandLabel = describeCommandInTurkish(
         msg,
         this.state.shortcuts,

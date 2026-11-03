@@ -194,11 +194,87 @@ public class AudioBridge {
                 case "K": vk = 0x4B; break;
                 case "BACKSPACE": vk = 0x08; break;
                 case "TAB": vk = 0x09; break;
+                case "DELETE": vk = 0x2E; break;
             }
             if (vk != 0) {
                 keybd_event(vk, 0, 0, UIntPtr.Zero);
                 keybd_event(vk, 0, 2, UIntPtr.Zero);
             }
+        });
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool OpenClipboard(IntPtr hWndNewOwner);
+
+    [DllImport("user32.dll")]
+    private static extern bool CloseClipboard();
+
+    [DllImport("user32.dll")]
+    private static extern bool EmptyClipboard();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GlobalLock(IntPtr hMem);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool GlobalUnlock(IntPtr hMem);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GlobalFree(IntPtr hMem);
+
+    private const uint CF_UNICODETEXT = 13;
+    private const uint GMEM_MOVEABLE = 0x0002;
+
+    public static void SendText(string text) {
+        if (string.IsNullOrEmpty(text)) return;
+        EnqueueInput(() => {
+            try {
+                bool opened = false;
+                for (int i = 0; i < 5; i++) {
+                    if (OpenClipboard(IntPtr.Zero)) {
+                        opened = true;
+                        break;
+                    }
+                    Thread.Sleep(10);
+                }
+                if (!opened) return;
+
+                try {
+                    EmptyClipboard();
+                    byte[] bytes = Encoding.Unicode.GetBytes(text + (char)0);
+                    IntPtr hMem = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+                    if (hMem != IntPtr.Zero) {
+                        IntPtr target = GlobalLock(hMem);
+                        if (target != IntPtr.Zero) {
+                            Marshal.Copy(bytes, 0, target, bytes.Length);
+                            GlobalUnlock(hMem);
+                            if (SetClipboardData(CF_UNICODETEXT, hMem) == IntPtr.Zero) {
+                                GlobalFree(hMem);
+                            }
+                        } else {
+                            GlobalFree(hMem);
+                        }
+                    }
+                } finally {
+                    CloseClipboard();
+                }
+
+                // Small pause so Windows clipboard and target app synchronize
+                Thread.Sleep(20);
+
+                // Send Ctrl + V
+                keybd_event(0x11, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(10);
+                keybd_event(0x56, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(15);
+                keybd_event(0x56, 0, 2, UIntPtr.Zero);
+                keybd_event(0x11, 0, 2, UIntPtr.Zero);
+            } catch {}
         });
     }
 
@@ -219,20 +295,19 @@ public class AudioBridge {
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-
-    [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr ProcessId);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr SendMessageTimeout(
+        IntPtr hWnd,
+        uint Msg,
+        IntPtr wParam,
+        StringBuilder lParam,
+        uint fuFlags,
+        uint uTimeout,
+        out IntPtr lpdwResult
+    );
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-    [DllImport("user32.dll")]
-    private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
-
-    [DllImport("kernel32.dll")]
-    private static extern uint GetCurrentThreadId();
 
     private static IAudioEndpointVolume GetVolumeObject() {
         var enumerator = (IMMDeviceEnumerator)(new MMDeviceEnumeratorComObject());
@@ -273,9 +348,15 @@ public class AudioBridge {
     }
 
     private static string GetWindowTitle(IntPtr hWnd) {
-        StringBuilder sb = new StringBuilder(512);
-        GetWindowText(hWnd, sb, sb.Capacity);
-        return sb.ToString();
+        try {
+            StringBuilder sb = new StringBuilder(512);
+            IntPtr result;
+            IntPtr res = SendMessageTimeout(hWnd, 0x000D, (IntPtr)sb.Capacity, sb, 0x0002, 100, out result);
+            if (res != IntPtr.Zero) {
+                return sb.ToString();
+            }
+        } catch {}
+        return string.Empty;
     }
 
     private static bool IsTvLauncherWindow(IntPtr hWnd) {
@@ -316,38 +397,24 @@ public class AudioBridge {
 
     public static bool FocusAndRestore(IntPtr hWnd) {
         if (hWnd == IntPtr.Zero) return false;
-        ShowWindow(hWnd, 9); // SW_RESTORE (unminimize)
-        IntPtr fg = GetForegroundWindow();
-        if (fg != IntPtr.Zero && fg != hWnd) {
-            uint fgThread = GetWindowThreadProcessId(fg, IntPtr.Zero);
-            uint curThread = GetCurrentThreadId();
-            if (fgThread != curThread && fgThread != 0) {
-                AttachThreadInput(curThread, fgThread, true);
-                SetForegroundWindow(hWnd);
-                AttachThreadInput(curThread, fgThread, false);
-                return true;
-            }
+        try {
+            ShowWindow(hWnd, 9); // SW_RESTORE (unminimize)
+            SetForegroundWindow(hWnd);
+            return true;
+        } catch {
+            return false;
         }
-        SetForegroundWindow(hWnd);
-        return true;
     }
 
-    public static bool FocusTvLauncher() {
-        bool res = false;
-        var ev = new ManualResetEvent(false);
-        EnqueueInput(() => {
+    public static void FocusTvLauncherAsync() {
+        ThreadPool.QueueUserWorkItem(_ => {
             try {
                 IntPtr tvHwnd = FindTvLauncherWindow();
                 if (tvHwnd != IntPtr.Zero) {
-                    res = FocusAndRestore(tvHwnd);
+                    FocusAndRestore(tvHwnd);
                 }
             } catch {}
-            finally {
-                ev.Set();
-            }
         });
-        ev.WaitOne(1500);
-        return res;
     }
 
     private static bool IsAntigravityWindow(IntPtr hWnd) {
@@ -356,10 +423,8 @@ public class AudioBridge {
         return title.IndexOf("Antigravity", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    public static bool FocusAntigravity() {
-        bool res = false;
-        var ev = new ManualResetEvent(false);
-        EnqueueInput(() => {
+    public static void FocusAntigravityAsync() {
+        ThreadPool.QueueUserWorkItem(_ => {
             try {
                 IntPtr found = IntPtr.Zero;
                 EnumWindows((hWnd, lParam) => {
@@ -370,15 +435,10 @@ public class AudioBridge {
                     return true;
                 }, IntPtr.Zero);
                 if (found != IntPtr.Zero) {
-                    res = FocusAndRestore(found);
+                    FocusAndRestore(found);
                 }
             } catch {}
-            finally {
-                ev.Set();
-            }
         });
-        ev.WaitOne(1500);
-        return res;
     }
 
     private static bool DoHideBookmarksBar() {
@@ -387,7 +447,7 @@ public class AudioBridge {
 
         IntPtr fg = GetForegroundWindow();
         if (fg != tvHwnd && !IsTvLauncherWindow(fg)) {
-            SetForegroundWindow(tvHwnd);
+            FocusAndRestore(tvHwnd);
             Thread.Sleep(90);
             fg = GetForegroundWindow();
         }
@@ -406,19 +466,12 @@ public class AudioBridge {
         return true;
     }
 
-    public static bool HideBookmarksBar() {
-        bool res = false;
-        var ev = new ManualResetEvent(false);
-        EnqueueInput(() => {
+    public static void HideBookmarksBarAsync() {
+        ThreadPool.QueueUserWorkItem(_ => {
             try {
-                res = DoHideBookmarksBar();
+                DoHideBookmarksBar();
             } catch {}
-            finally {
-                ev.Set();
-            }
         });
-        ev.WaitOne(2000);
-        return res;
     }
 }
 '@
@@ -445,13 +498,11 @@ while (($line = [Console]::In.ReadLine()) -ne $null) {
         } elseif ($cmd -eq 'WAKEDISPLAY') {
             [AudioBridge]::WakeDisplay()
         } elseif ($cmd -eq 'FOCUSTV') {
-            [AudioBridge]::FocusTvLauncher()
+            [AudioBridge]::FocusTvLauncherAsync()
         } elseif ($cmd -eq 'FOCUSANTIGRAVITY') {
-            [AudioBridge]::FocusAntigravity()
+            [AudioBridge]::FocusAntigravityAsync()
         } elseif ($cmd -eq 'HIDEBOOKMARKS') {
-            $ok = [int][AudioBridge]::HideBookmarksBar()
-            [Console]::Out.WriteLine("BM_HIDDEN $ok")
-            [Console]::Out.Flush()
+            [AudioBridge]::HideBookmarksBarAsync()
         } elseif ($cmd -eq 'MOVE' -and $parts.Length -ge 3) {
             [AudioBridge]::MouseMove([int]$parts[1], [int]$parts[2])
         } elseif ($cmd -eq 'CLICK' -and $parts.Length -ge 2) {
@@ -466,6 +517,9 @@ while (($line = [Console]::In.ReadLine()) -ne $null) {
             [AudioBridge]::MouseScroll($dy, $dx)
         } elseif ($cmd -eq 'KEY' -and $parts.Length -ge 2) {
             [AudioBridge]::SendKey($parts[1])
+        } elseif ($cmd -eq 'TEXT' -and $parts.Length -ge 2) {
+            $rawText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($parts[1]))
+            [AudioBridge]::SendText($rawText)
         } elseif ($cmd -eq 'GET') {
             $v = [AudioBridge]::GetVolume()
             $m = [int][AudioBridge]::GetMute()
@@ -569,6 +623,7 @@ export class SystemAudioController {
       );
 
       this.child = child;
+      child.stderr.resume();
 
       let stdoutBuffer = '';
       child.stdout.on('data', (chunk: Buffer) => {
@@ -708,6 +763,12 @@ export class SystemAudioController {
   public sendKey(key: string): void {
     if (!this.enabled || this.isClosing) return;
     this.sendLine(`KEY ${key}`);
+  }
+
+  public sendText(text: string): void {
+    if (!this.enabled || this.isClosing || !text) return;
+    const b64 = Buffer.from(text, 'utf8').toString('base64');
+    this.sendLine(`TEXT ${b64}`);
   }
 
   /**

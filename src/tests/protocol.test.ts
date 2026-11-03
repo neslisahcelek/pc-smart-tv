@@ -328,7 +328,21 @@ describe('Protocol & Security Boundary Validation', () => {
   });
 
   it('validates KEY_PRESS messages and allows only whitelisted media/playback keys', () => {
-    const validKeys = ['SPACE', 'LEFT', 'RIGHT', 'UP', 'DOWN', 'F', 'M', 'ESCAPE', 'ENTER', 'K'] as const;
+    const validKeys = [
+      'SPACE',
+      'LEFT',
+      'RIGHT',
+      'UP',
+      'DOWN',
+      'F',
+      'M',
+      'ESCAPE',
+      'ENTER',
+      'K',
+      'BACKSPACE',
+      'TAB',
+      'DELETE'
+    ] as const;
     for (const k of validKeys) {
       const res = validateClientMessage({ type: 'KEY_PRESS', key: k });
       expect(res.ok).toBe(true);
@@ -337,6 +351,31 @@ describe('Protocol & Security Boundary Validation', () => {
 
     const invalidKey = validateClientMessage({ type: 'KEY_PRESS', key: 'ALT_F4' });
     expect(invalidKey.ok).toBe(false);
+  });
+
+  it('validates TYPE_TEXT messages correctly', () => {
+    const valid = validateClientMessage({ type: 'TYPE_TEXT', text: 'Merhaba Dünya! Türkçe test: çğışöü' });
+    expect(valid.ok).toBe(true);
+    expect(valid.message).toEqual({
+      type: 'TYPE_TEXT',
+      text: 'Merhaba Dünya! Türkçe test: çğışöü'
+    });
+
+    const empty = validateClientMessage({ type: 'TYPE_TEXT', text: '' });
+    expect(empty.ok).toBe(false);
+
+    const nonString = validateClientMessage({ type: 'TYPE_TEXT', text: 12345 });
+    expect(nonString.ok).toBe(false);
+
+    const oversized = validateClientMessage({ type: 'TYPE_TEXT', text: 'a'.repeat(501) });
+    expect(oversized.ok).toBe(false);
+
+    const withNulls = validateClientMessage({ type: 'TYPE_TEXT', text: 'Hello\0World' });
+    expect(withNulls.ok).toBe(true);
+    expect(withNulls.message).toEqual({ type: 'TYPE_TEXT', text: 'HelloWorld' });
+
+    const onlyNulls = validateClientMessage({ type: 'TYPE_TEXT', text: '\0\0\0' });
+    expect(onlyNulls.ok).toBe(false);
   });
 
   it('validates private LAN IP addresses including IPv4, IPv6, and local hostnames', () => {

@@ -49,7 +49,8 @@ const ALLOWED_KEY_PRESSES = new Set<KeyPressCode>([
   'M',
   'K',
   'BACKSPACE',
-  'TAB'
+  'TAB',
+  'DELETE'
 ]);
 
 const ALLOWED_DIRECTIONS = new Set<NavigationDirection>([
@@ -788,6 +789,27 @@ export function validateClientMessage(
         message: {
           type: 'KEY_PRESS',
           key: key as KeyPressCode
+        }
+      };
+    }
+
+    case 'TYPE_TEXT': {
+      const rawText = obj.text;
+      if (typeof rawText !== 'string' || rawText.length === 0) {
+        return { ok: false, error: 'Text must be a non-empty string.' };
+      }
+      const text = rawText.replace(/\0/g, '');
+      if (text.length === 0) {
+        return { ok: false, error: 'Text must not be empty.' };
+      }
+      if (text.length > 500) {
+        return { ok: false, error: 'Text exceeds maximum length of 500 characters.' };
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TYPE_TEXT',
+          text
         }
       };
     }

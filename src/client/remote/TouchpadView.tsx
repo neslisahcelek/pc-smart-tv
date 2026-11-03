@@ -4,8 +4,13 @@ import {
   RotateCw,
   Play,
   Maximize2,
+  Volume1,
   Volume2,
   VolumeX,
+  Keyboard,
+  Send,
+  CornerDownLeft,
+  Delete,
   Settings,
   Sparkles,
   ChevronUp,
@@ -21,13 +26,15 @@ interface TouchpadViewProps {
   triggerFeedback: (label: string) => void;
   activeSeriesTitle?: string;
   isMuted?: boolean;
+  volume?: number;
 }
 
 export function TouchpadView({
   sendCommand,
   triggerFeedback,
   activeSeriesTitle,
-  isMuted = false
+  isMuted = false,
+  volume = 80
 }: TouchpadViewProps) {
   const [sensitivity, setSensitivity] = useState<number>(() => {
     try {
@@ -59,6 +66,13 @@ export function TouchpadView({
     }
   });
   const [showSettingsSheet, setShowSettingsSheet] = useState<boolean>(false);
+  const [showGestureGuide, setShowGestureGuide] = useState<boolean>(false);
+  const [practiceFeedback, setPracticeFeedback] = useState<string>('Alana dokunarak jestleri deneyin');
+  const [showVolumeCapsule, setShowVolumeCapsule] = useState<boolean>(false);
+  const [showKeyboardSheet, setShowKeyboardSheet] = useState<boolean>(false);
+  const [keyboardText, setKeyboardText] = useState<string>('');
+  const keyboardInputRef = useRef<HTMLInputElement | null>(null);
+  const volumeCapsuleRef = useRef<HTMLDivElement | null>(null);
   const [isDragLocked, setIsDragLocked] = useState<boolean>(false);
   const [touchIndicator, setTouchIndicator] = useState<{ x: number; y: number } | null>(null);
 
@@ -524,6 +538,33 @@ export function TouchpadView({
     };
   }, [isDragLocked, sendCommand]);
 
+  // Auto-focus text input when keyboard sheet opens
+  useEffect(() => {
+    if (showKeyboardSheet) {
+      const timer = setTimeout(() => {
+        keyboardInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showKeyboardSheet]);
+
+  // Close volume capsule on outside clicks
+  useEffect(() => {
+    if (!showVolumeCapsule) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        volumeCapsuleRef.current &&
+        !volumeCapsuleRef.current.contains(target) &&
+        !target.closest('.touchpad-volume-trigger')
+      ) {
+        setShowVolumeCapsule(false);
+      }
+    };
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, [showVolumeCapsule]);
+
   return (
     <div className="touchpad-container">
       {/* 1. Quick Series & Video Controls Bar (Sleek Floating Capsule) */}
@@ -587,11 +628,11 @@ export function TouchpadView({
 
           <button
             type="button"
-            className={`touchpad-media-btn ${isMuted ? 'is-muted-active' : ''}`}
-            title="Sesi Kapat / Aç (M)"
+            className={`touchpad-media-btn touchpad-volume-trigger ${isMuted ? 'is-muted-active' : ''} ${showVolumeCapsule ? 'is-active-capsule' : ''}`}
+            title="Ses Kontrolü & Kapsül"
             onClick={() => {
-              sendCommand({ type: 'KEY_PRESS', key: 'M' });
-              triggerFeedback(isMuted ? 'Ses Açık' : 'Sessiz');
+              setShowVolumeCapsule((prev) => !prev);
+              setShowKeyboardSheet(false);
             }}
           >
             {isMuted ? <VolumeX size={16} strokeWidth={2.2} /> : <Volume2 size={16} strokeWidth={2.2} />}
@@ -599,14 +640,99 @@ export function TouchpadView({
 
           <button
             type="button"
+            className={`touchpad-media-btn touchpad-keyboard-trigger ${showKeyboardSheet ? 'is-active-capsule' : ''}`}
+            title="Telefondan PC'ye Klavye & Metin Gönder"
+            onClick={() => {
+              setShowKeyboardSheet(true);
+              setShowVolumeCapsule(false);
+            }}
+          >
+            <Keyboard size={16} strokeWidth={2.2} />
+          </button>
+
+          <button
+            type="button"
             className="touchpad-media-btn touchpad-settings-trigger"
             title="Hassasiyet & Touchpad Ayarları"
-            onClick={() => setShowSettingsSheet(true)}
+            onClick={() => {
+              setShowSettingsSheet(true);
+              setShowVolumeCapsule(false);
+              setShowKeyboardSheet(false);
+            }}
           >
             <Settings size={16} strokeWidth={2.2} />
           </button>
         </div>
       </div>
+
+      {/* Floating Volume Capsule Popover */}
+      {showVolumeCapsule && (
+        <div ref={volumeCapsuleRef} className="touchpad-volume-capsule">
+          <div className="touchpad-capsule-row">
+            <button
+              type="button"
+              className={`touchpad-capsule-btn ${isMuted ? 'is-muted-active' : ''}`}
+              title={isMuted ? 'Sesi Aç' : 'Sessize Al'}
+              onClick={() => {
+                sendCommand({ type: 'COMMAND', action: 'TOGGLE_MUTE' });
+                triggerFeedback(isMuted ? 'Ses Açık' : 'Sessiz');
+              }}
+            >
+              {isMuted ? <VolumeX size={16} strokeWidth={2.2} /> : <Volume2 size={16} strokeWidth={2.2} />}
+            </button>
+
+            <button
+              type="button"
+              className="touchpad-capsule-btn"
+              title="Sesi 10 Azalt"
+              onClick={() => {
+                sendCommand({ type: 'ADJUST_VOLUME', delta: -10 });
+                triggerFeedback('Ses -10');
+              }}
+            >
+              <Volume1 size={14} strokeWidth={2} />
+              <span>-10</span>
+            </button>
+
+            <div className="touchpad-capsule-slider-wrap">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="2"
+                value={volume}
+                className="touchpad-capsule-slider"
+                onChange={(e) => {
+                  sendCommand({ type: 'SET_VOLUME', volume: Number(e.target.value) });
+                }}
+              />
+              <span className="touchpad-capsule-pct">%{volume}</span>
+            </div>
+
+            <button
+              type="button"
+              className="touchpad-capsule-btn"
+              title="Sesi 10 Artır"
+              onClick={() => {
+                sendCommand({ type: 'ADJUST_VOLUME', delta: 10 });
+                triggerFeedback('Ses +10');
+              }}
+            >
+              <Volume2 size={14} strokeWidth={2} />
+              <span>+10</span>
+            </button>
+
+            <button
+              type="button"
+              className="touchpad-capsule-close"
+              title="Kapat"
+              onClick={() => setShowVolumeCapsule(false)}
+            >
+              <X size={15} strokeWidth={2.2} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Full-Height Touchpad Surface + Floating Overlay Scroll Strip */}
       <div className="touchpad-surface-row">
@@ -806,6 +932,18 @@ export function TouchpadView({
                 </div>
               </div>
 
+              <button
+                type="button"
+                className="touchpad-open-guide-btn"
+                onClick={() => {
+                  setShowSettingsSheet(false);
+                  setShowGestureGuide(true);
+                }}
+              >
+                <Sparkles size={16} strokeWidth={2.2} />
+                <span>Animasyonlu Jest Rehberini Aç</span>
+              </button>
+
               {/* Gesture Cheat Sheet */}
               <div className="touchpad-gesture-guide">
                 <div className="touchpad-guide-title">
@@ -818,6 +956,299 @@ export function TouchpadView({
                 <div className="touchpad-guide-item"><span>İki Parmak Kaydır:</span> Pürüzsüz Sayfa Kaydırma</div>
                 <div className="touchpad-guide-item"><span>Tek Parmak Basılı Tut:</span> Sağ Tık Menüsü</div>
                 <div className="touchpad-guide-item"><span>Çift Dokun ve Sürükle:</span> Pencere / Metin Taşı</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4.5 Stageshow-Craft Animated Gesture Guide Modal */}
+      {showGestureGuide && (
+        <div className="touchpad-sheet-backdrop" onClick={() => setShowGestureGuide(false)}>
+          <div className="touchpad-sheet touchpad-gesture-guide-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="touchpad-sheet-handle" />
+            <div className="touchpad-sheet-header">
+              <div className="touchpad-sheet-title">
+                <Sparkles size={18} strokeWidth={2.2} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
+                <span>Dokunmatik Jest & Hareket Rehberi</span>
+              </div>
+              <button
+                type="button"
+                className="touchpad-sheet-close"
+                onClick={() => setShowGestureGuide(false)}
+                aria-label="Kapat"
+              >
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            <div className="touchpad-sheet-content">
+              {/* Practice Canvas Sandbox */}
+              <div
+                className="gesture-practice-box"
+                onTouchStart={() => setPracticeFeedback('Dokunma Başladı...')}
+                onTouchEnd={(e) => {
+                  if (e.changedTouches.length >= 2) {
+                    setPracticeFeedback('✓ İki Parmak Dokunuldu (Sağ Tık)');
+                  } else {
+                    setPracticeFeedback('✓ Tek Dokunuş (Sol Tık)');
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (e.touches.length >= 2) {
+                    setPracticeFeedback('✓ İki Parmakla Kaydırma (Scroll)');
+                  } else {
+                    setPracticeFeedback('✓ İmleç Geziniyor');
+                  }
+                }}
+              >
+                <div className="gesture-practice-pill">{practiceFeedback}</div>
+                <small>Burada parmağınızla serbestçe jestleri test edebilirsiniz</small>
+              </div>
+
+              {/* 5 Animated Gesture Cards */}
+              <div className="gesture-cards-list">
+                <div className="gesture-card-row">
+                  <div className="gesture-card-anim anim-tap">
+                    <div className="anim-finger-dot" />
+                    <div className="anim-tap-ripple" />
+                  </div>
+                  <div className="gesture-card-desc">
+                    <strong>1. Tek Dokunuş (Sol Tık)</strong>
+                    <p>Parmağınızla ekrana bir kez dokunup çekin. Butonları ve bağlantıları tıklar.</p>
+                  </div>
+                </div>
+
+                <div className="gesture-card-row">
+                  <div className="gesture-card-anim anim-scroll">
+                    <div className="anim-finger-pair">
+                      <div className="anim-finger-dot" />
+                      <div className="anim-finger-dot" />
+                    </div>
+                  </div>
+                  <div className="gesture-card-desc">
+                    <strong>2. İki Parmakla Scroll</strong>
+                    <p>İki parmağınızı aynı anda yukarı-aşağı kaydırarak sayfaları ve YouTube listesini pürüzsüz kaydırın.</p>
+                  </div>
+                </div>
+
+                <div className="gesture-card-row">
+                  <div className="gesture-card-anim anim-longpress">
+                    <div className="anim-finger-dot" />
+                    <div className="anim-radial-ring" />
+                  </div>
+                  <div className="gesture-card-desc">
+                    <strong>3. Uzun Basma / 2 Parmak (Sağ Tık)</strong>
+                    <p>Parmağınızı 400ms basılı tutun veya iki parmakla aynı anda dokunun. Sağ tık menüsü açar.</p>
+                  </div>
+                </div>
+
+                <div className="gesture-card-row">
+                  <div className="gesture-card-anim anim-strip">
+                    <div className="anim-phone-outline">
+                      <div className="anim-strip-thumb" />
+                    </div>
+                  </div>
+                  <div className="gesture-card-desc">
+                    <strong>4. Sağ Kenar Başparmak Şeridi</strong>
+                    <p>Ekranın en sağındaki şeritten tek başparmağınızla yukarı-aşağı kaydırarak tek elle rahatça scroll yapın.</p>
+                  </div>
+                </div>
+
+                <div className="gesture-card-row">
+                  <div className="gesture-card-anim anim-drag">
+                    <div className="anim-window-box" />
+                    <div className="anim-drag-cursor" />
+                  </div>
+                  <div className="gesture-card-desc">
+                    <strong>5. Çift Tık & Sürükleme (Pencere Taşı)</strong>
+                    <p>Çift dokunup parmağınızı kaldırmadan sürükleyin veya alt bardaki ✋ butonuna basarak pencereleri taşıyın.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Keyboard Modal Sheet */}
+      {showKeyboardSheet && (
+        <div className="touchpad-sheet-backdrop" onClick={() => setShowKeyboardSheet(false)}>
+          <div className="touchpad-sheet touchpad-keyboard-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="touchpad-sheet-handle" />
+            <div className="touchpad-sheet-header">
+              <div className="touchpad-sheet-title">
+                <Keyboard size={18} strokeWidth={2.2} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
+                <span>PC'ye Klavye & Metin Gönder</span>
+              </div>
+              <button
+                type="button"
+                className="touchpad-sheet-close"
+                onClick={() => setShowKeyboardSheet(false)}
+                aria-label="Kapat"
+              >
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            <div className="touchpad-sheet-content">
+              {/* Form with Input and Send Buttons */}
+              <form
+                className="touchpad-keyboard-modal-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (keyboardText) {
+                    sendCommand({ type: 'TYPE_TEXT', text: keyboardText });
+                    triggerFeedback(`PC'ye Yazıldı: ${keyboardText.slice(0, 16)}`);
+                    setKeyboardText('');
+                    keyboardInputRef.current?.focus();
+                  }
+                }}
+              >
+                <div className="touchpad-keyboard-input-wrap">
+                  <input
+                    ref={keyboardInputRef}
+                    autoFocus
+                    type="text"
+                    className="touchpad-keyboard-modal-input"
+                    value={keyboardText}
+                    onChange={(e) => setKeyboardText(e.target.value)}
+                    placeholder="PC'de imlecin olduğu yere yazılacak metin..."
+                    autoCapitalize="sentences"
+                    autoCorrect="on"
+                    spellCheck={true}
+                  />
+                  {keyboardText && (
+                    <button
+                      type="button"
+                      className="touchpad-keyboard-clear-btn"
+                      onClick={() => setKeyboardText('')}
+                      aria-label="Temizle"
+                    >
+                      <X size={14} strokeWidth={2.2} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="touchpad-keyboard-actions-row">
+                  <button
+                    type="submit"
+                    className="touchpad-modal-send-btn"
+                    onPointerDown={(e) => e.preventDefault()}
+                    disabled={!keyboardText}
+                    title="Yazılan Metni PC'ye Gönder"
+                  >
+                    <Send size={15} strokeWidth={2.2} />
+                    <span>PC'ye Gönder</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="touchpad-modal-send-enter-btn"
+                    disabled={!keyboardText}
+                    onClick={() => {
+                      if (keyboardText) {
+                        sendCommand({ type: 'TYPE_TEXT', text: keyboardText });
+                        sendCommand({ type: 'KEY_PRESS', key: 'ENTER' });
+                        triggerFeedback('Gönderildi + Enter');
+                        setKeyboardText('');
+                        setShowKeyboardSheet(false);
+                      }
+                    }}
+                    title="Metni Gönder ve PC'de Enter'a Basıp Kapat"
+                  >
+                    <CornerDownLeft size={15} strokeWidth={2.2} />
+                    <span>Gönder + Enter ↵</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Hızlı Tuşlar Paneli */}
+              <div className="touchpad-sheet-group">
+                <div className="touchpad-sheet-label-row">
+                  <span>Hızlı PC Tuşları (Doğrudan Gönder)</span>
+                </div>
+                <div className="touchpad-keyboard-grid-keys">
+                  <button
+                    type="button"
+                    className="touchpad-modal-key"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      sendCommand({ type: 'KEY_PRESS', key: 'ENTER' });
+                      triggerFeedback('Enter');
+                    }}
+                    title="Enter (Seç / Git)"
+                  >
+                    <CornerDownLeft size={14} strokeWidth={2.2} />
+                    <span>Enter ↵</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="touchpad-modal-key"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      sendCommand({ type: 'KEY_PRESS', key: 'BACKSPACE' });
+                      triggerFeedback('Geri Sil');
+                    }}
+                    title="Geri Silme (Backspace)"
+                  >
+                    <Delete size={14} strokeWidth={2.2} />
+                    <span>Geri Sil ⌫</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="touchpad-modal-key"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      sendCommand({ type: 'KEY_PRESS', key: 'SPACE' });
+                      triggerFeedback('Boşluk');
+                    }}
+                    title="Boşluk Tuşu (Space)"
+                  >
+                    <span>Boşluk ␣</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="touchpad-modal-key"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      sendCommand({ type: 'KEY_PRESS', key: 'TAB' });
+                      triggerFeedback('Tab');
+                    }}
+                    title="Sonraki Kutu (Tab)"
+                  >
+                    <span>Tab ⇥</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="touchpad-modal-key"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      sendCommand({ type: 'KEY_PRESS', key: 'ESCAPE' });
+                      triggerFeedback('Esc');
+                    }}
+                    title="İptal / Çıkış (Esc)"
+                  >
+                    <span>Esc ⎋</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="touchpad-modal-key"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      sendCommand({ type: 'KEY_PRESS', key: 'DELETE' });
+                      triggerFeedback('Del');
+                    }}
+                    title="İleri Silme (Delete)"
+                  >
+                    <span>Del ⌦</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

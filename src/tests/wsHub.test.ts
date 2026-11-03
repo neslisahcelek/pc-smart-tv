@@ -317,6 +317,9 @@ describe('Remote-to-TV WebSocket Vertical Slice & Integration', () => {
     // Send KEY_PRESS
     remoteClient.send(JSON.stringify({ type: 'KEY_PRESS', key: 'SPACE' }));
 
+    // Send TYPE_TEXT
+    remoteClient.send(JSON.stringify({ type: 'TYPE_TEXT', text: 'Film ara...' }));
+
     // Verify ping/pong still works and server remains fully operational
     const pongPromise = waitForMessage(remoteClient, (m) => m.type === 'PONG');
     remoteClient.send(JSON.stringify({ type: 'PING', timestamp: 12345 }));

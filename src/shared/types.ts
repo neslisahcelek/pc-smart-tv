@@ -120,7 +120,8 @@ export type KeyPressCode =
   | 'M'
   | 'K'
   | 'BACKSPACE'
-  | 'TAB';
+  | 'TAB'
+  | 'DELETE';
 
 export type ValidatedClientMessage =
   | {
@@ -256,6 +257,10 @@ export type ValidatedClientMessage =
   | {
       type: 'KEY_PRESS';
       key: KeyPressCode;
+    }
+  | {
+      type: 'TYPE_TEXT';
+      text: string;
     };
 
 export type ServerBroadcastMessage =

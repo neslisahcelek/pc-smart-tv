@@ -24,7 +24,8 @@ Smart TV özelliği olmayan veya eski televizyonları; HDMI ile bağlı bir Wind
 ## ✨ Temel Özellikler
 
 ### 🖥️ 1. 10-Foot TV Arayüzü (`/tv`)
-* **Büyük Ekran Tasarımı:** Uzaktan rahat okunan açık/koyu tema, geniş kartlar ve tam uzaktan kumanda / klavye navigasyonu.
+* **Stageshow Bento Grid Mimarisi:** En son izlenen diziyi öne çıkaran 2x1 asimetrik Hero kartı (afiş, bölüm rozeti, ilerleme çubuğu ve tek tıkla izleme), Windows CoreAudio ses widget'ı ve YouTube çekmecesi.
+* **Büyük Ekran Tasarımı & Akıllı Odak:** Uzaktan rahat okunan açık/koyu tema, geniş kartlar ve tam uzaktan kumanda / klavye navigasyonu (Spatial Navigation) ile odaklanan karta derinlik ve parlama efekti.
 * **Platform & Dizi Kısayolları:** Netflix, YouTube, Prime Video, GAİN ve popüler dizi sitelerine anında erişim.
 * **Kişiselleştirilebilir Düzen:** Kartların sırasını değiştirme, istenmeyenleri gizleme ve özel site kısayolları ekleme.
 * **Hızlı Bağlantı:** iPhone ile anında eşleşme sağlayan ekrandaki yerel ağ QR kodu.
@@ -37,6 +38,7 @@ Smart TV özelliği olmayan veya eski televizyonları; HDMI ile bağlı bir Wind
 ### 🖱️ 3. Kablosuz Trackpad & Hızlı Medya Tuşları
 * **60 FPS Dokunmatik Mouse:** iPhone ekranını dizüstü touchpad'i gibi kullanarak imleci yönetme; tek parmak sol tık, iki parmak sağ tık, sürükle-bırak desteği.
 * **Çift Modlu Scroll:** İki parmakla serbest kaydırma veya sağ kenardaki özel başparmak şeridiyle pürüzsüz sayfa kaydırma.
+* **İnteraktif Dokunmatik Jest Rehberi:** Touchpad üzerindeki ✨ butonuna basarak tek parmak tık, çift parmak kaydırma, uzun basma ve sürükleme jestlerini canlı animasyonlarla gösteren rehber ve pratik test alanı.
 * **Dizi & Video Kısayolları:** Tek dokunuşla `⏯ Oynat/Durdur` (Space/Media Key), `⏪ / ⏩ 10 sn Atlama`, `⛶ Tam Ekran` (F), `Sekme Değiştir` (Tab) ve `Esc`.
 
 ### 🍿 4. Dizi Takip Sistemi ("İzlemeye Devam Et")
@@ -133,6 +135,32 @@ New-NetFirewallRule -DisplayName "Smart TV Launcher (LAN TCP 3000)" -Direction I
 ---
 
 ## 🧪 Test ve Kalite Kontrolü
+
+### 🛡️ Pre-Push Code Review Ajanı (Önerilen)
+Git deposuna kod göndermeden (`git push`) önce tüm güvenlik, profil koruma ve kalite standartlarını tek komutla denetleyin:
+```powershell
+npm run review
+# veya
+npm run pre-push
+```
+
+Bu kontrol otomatik olarak:
+1. **Kişisel Chrome Profili Korumasını** (ayrı `--user-data-dir` veya `taskkill chrome.exe` yasağı),
+2. **Güvenlik ve Bilgi Sızıntısını** (frontend kodunda sır/token olmaması, WebSocket origin ve 16 KB sınırları),
+3. **Git Hijyenini** (çakışma işaretleri ve hassas dosya takibi),
+4. **TypeScript Tip Denetimini** (`npm run typecheck`),
+5. **Birim & Entegrasyon Testlerini** (`npm test`),
+6. **Üretim Derlemesini** (`npm run build`) denetler.
+
+#### Otomatik Git Pre-Push Kancası (Hook)
+`git push` yaptığınızda bu incelemenin otomatik çalışması ve hatalı push'ları engellemesi için bir defaya mahsus kancayı kurun:
+```powershell
+npm run install-hooks
+```
+
+---
+
+### Manuel Kontroller
 
 Tüm birim ve entegrasyon testlerini çalıştırmak için:
 ```powershell

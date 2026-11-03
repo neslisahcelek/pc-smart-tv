@@ -9,7 +9,10 @@
     "build": "vite build && tsc -p tsconfig.server.json",
     "start": "node dist/server/server/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "review": "node scripts/pre-push-review.mjs",
+    "pre-push": "node scripts/pre-push-review.mjs",
+    "install-hooks": "node scripts/install-git-hooks.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

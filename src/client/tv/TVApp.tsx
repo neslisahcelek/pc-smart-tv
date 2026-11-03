@@ -1044,6 +1044,115 @@ export function TVApp() {
     );
   };
 
+  /**
+   * Stageshow Craft: Compact Hero Spotlight Banner for 10-Foot TV Experience.
+   * Focuses purely on media content: active series and top watch later video in a single row.
+   * Unnecessary system widgets (CoreAudio and IP cards) removed to preserve vertical TV space.
+   */
+  const renderBentoSpotlight = () => {
+    const heroBookmark = serverState.shortcuts.find(
+      (s) => s.category === 'bookmark' && !s.hidden
+    );
+    const topWatchLater = watchLaterVideos.find(
+      (v) => !serverState.deletedWatchLaterVideoIds?.includes(v.videoId)
+    );
+
+    if (!heroBookmark && !topWatchLater) {
+      return null;
+    }
+
+    return (
+      <section
+        className={`tv-bento-spotlight ${!topWatchLater ? 'is-hero-only' : ''}`}
+        aria-label="Öne Çıkan Dizi ve Medya Paneli"
+      >
+        {/* 1. HERO TILE: Asymmetric spotlight banner for current series */}
+        {heroBookmark && (
+          <div className="tv-bento-tile tv-bento-hero">
+            <div className="tv-bento-hero-inner">
+              {heroBookmark.imageUrl && (
+                <img
+                  src={heroBookmark.imageUrl}
+                  alt={heroBookmark.name}
+                  className="tv-bento-hero-backdrop"
+                  loading="lazy"
+                />
+              )}
+              <div className="tv-bento-hero-scrim" />
+              <div className="tv-bento-hero-content">
+                <div className="tv-bento-tag">
+                  <span className="tv-bento-dot-live" />
+                  <span>Kaldığın Yerden Devam Et</span>
+                </div>
+                <h2 className="tv-bento-hero-title">{heroBookmark.name}</h2>
+                <div className="tv-bento-hero-meta">
+                  <span className="tv-bento-pill-badge">{heroBookmark.subtitle || 'Dizi Takibi'}</span>
+                  <span className="tv-bento-status-text">Kayıtlı Bölüm</span>
+                </div>
+                <div className="tv-bento-progress-track">
+                  <div className="tv-bento-progress-fill" style={{ width: '70%' }} />
+                </div>
+                <div className="tv-bento-hero-btns">
+                  <button
+                    type="button"
+                    data-spatial-item="true"
+                    className="tv-btn tv-btn-accent tv-bento-btn"
+                    onClick={() => handleShortcutClick(heroBookmark)}
+                  >
+                    ▶ Hemen İzle
+                  </button>
+                  <button
+                    type="button"
+                    data-spatial-item="true"
+                    className="tv-btn tv-btn-secondary tv-bento-btn"
+                    onClick={() => {
+                      const seriesKey = heroBookmark.id.replace(/^bm-series-/, '');
+                      sendCommand({ type: 'ADVANCE_PROGRESS', key: seriesKey });
+                      showToast(`${heroBookmark.name}: Sonraki bölüme ilerletildi (+1)`);
+                    }}
+                    title="Bölüm numarasını +1 artır"
+                  >
+                    +1 Bölüm
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 2. YOUTUBE / WATCH LATER COMPACT TILE */}
+        {topWatchLater && (
+          <div className="tv-bento-tile tv-bento-yt">
+            <div className="tv-bento-tile-header">
+              <span className="tv-bento-tile-eyebrow">Daha Sonra İzle</span>
+              <span className="tv-bento-pill">YouTube</span>
+            </div>
+            <div className="tv-bento-yt-body">
+              <div className="tv-bento-yt-thumb-wrap">
+                <img
+                  src={topWatchLater.thumbnailUrl}
+                  alt={topWatchLater.title}
+                  className="tv-bento-yt-thumb"
+                  loading="lazy"
+                />
+                <div className="tv-bento-yt-play-pill">▶</div>
+              </div>
+              <div className="tv-bento-yt-title">{topWatchLater.title}</div>
+              <button
+                type="button"
+                data-spatial-item="true"
+                className="tv-btn tv-btn-sm tv-btn-accent tv-bento-btn-full"
+                onClick={() => handlePlayWatchLaterVideo(topWatchLater)}
+              >
+                ▶ Oynat
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+    );
+  };
+
   const [hideMobileBanner, setHideMobileBanner] = useState(false);
   const isMobileDevice =
     !hideMobileBanner &&
@@ -1277,6 +1386,8 @@ export function TVApp() {
               </div>
             </section>
           )}
+
+          {!isEditMode && renderBentoSpotlight()}
 
           {sections.map((sec, secIdx) => {
             if (sec.id === 'watch_later') {

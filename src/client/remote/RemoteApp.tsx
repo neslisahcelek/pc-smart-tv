@@ -715,6 +715,7 @@ export function RemoteApp() {
               triggerFeedback={triggerFeedback}
               activeSeriesTitle={serverState.activeTabCandidate?.title}
               isMuted={serverState.muted}
+              volume={serverState.volume}
             />
           </div>
         )}
