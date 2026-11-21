@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const serverUrlInput = document.getElementById('serverUrl');
   const progressTokenInput = document.getElementById('progressToken');
   const delaySecondsInput = document.getElementById('delaySeconds');
+  const newSeriesDelaySecondsInput = document.getElementById('newSeriesDelaySeconds');
   const autoSyncBookmarksInput = document.getElementById('autoSyncBookmarks');
   const newSiteInput = document.getElementById('newSiteInput');
   const btnAddSite = document.getElementById('btnAddSite');
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     serverUrl: 'http://localhost:3000',
     progressToken: '',
     delaySeconds: 60,
+    newSeriesDelaySeconds: 300,
     autoSyncBookmarks: true,
     customSites: []
   };
@@ -62,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   serverUrlInput.value = stored.serverUrl || defaults.serverUrl;
   progressTokenInput.value = stored.progressToken || '';
   delaySecondsInput.value = stored.delaySeconds || 60;
+  newSeriesDelaySecondsInput.value = stored.newSeriesDelaySeconds || 300;
   autoSyncBookmarksInput.checked = stored.autoSyncBookmarks !== false;
   currentCustomSites = Array.isArray(stored.customSites) ? stored.customSites : [];
   renderTags();
@@ -112,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       serverUrl: serverUrlInput.value.trim().replace(/\/+$/, ''),
       progressToken: progressTokenInput.value.trim(),
       delaySeconds: Number(delaySecondsInput.value) || 60,
+      newSeriesDelaySeconds: Number(newSeriesDelaySecondsInput.value) || 300,
       autoSyncBookmarks: autoSyncBookmarksInput.checked,
       customSites: currentCustomSites
     };

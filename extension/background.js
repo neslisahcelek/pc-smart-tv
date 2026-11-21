@@ -9,6 +9,7 @@ const KNOWN_SITE_KEYWORDS = [
   'dizibox',
   'dizigom',
   'dizilla',
+  'diziyou',
   'hdfilmcehennemi',
   'filmmakinesi',
   'selcukflix',
@@ -64,7 +65,7 @@ function extractSeriesKey(title = '', rawUrl = '') {
 
   let clean = title
     .replace(
-      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
+      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|diziyou|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
       ''
     )
     .replace(/\s*\|\s*max\b/gi, '')
@@ -143,9 +144,10 @@ function extractSeasonAndEpisode(rawTitle = '', rawUrl = '') {
   // 2. Season & episode in URL
   const seUrlMatch =
     rawUrl.match(/(?:sezon|season)-(\d+)\/(?:bolum|episode)-(\d+)/i) ??
+    rawUrl.match(/(?:sezon|season)[-_](\d+)[-_](?:bolum|episode)[-_](\d+)/i) ??
     rawUrl.match(/(\d+)-(?:sezon|season)-(\d+)-(?:bolum|episode)/i) ??
     rawUrl.match(/[-/](\d{1,2})x(\d{1,3})(?:$|[-/?#])/i) ??
-    rawUrl.match(/[-/]s(\d{1,2})e(\d{1,3})(?:$|[-/?#])/i);
+    rawUrl.match(/[-/]s(\d{1,2})[-_]?e(\d{1,3})(?:$|[-/?#])/i);
 
   if (seUrlMatch) {
     return {
@@ -193,7 +195,7 @@ function formatCleanSeriesAndEpisode(key, rawTitle = '', rawUrl = '') {
 
   let cleaned = rawTitle
     .replace(
-      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
+      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|diziyou|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
       ''
     )
     .replace(/\s*\|\s*max\b/gi, '')
@@ -256,14 +258,13 @@ function isEpisodeUrl(url, title = '', customSites = []) {
     return false;
   }
 
-  // Check if URL or title indicates a series episode or show page
-  const combined = `${url} ${title}`.toLowerCase();
-  const hasEpisodePattern =
-    /sezon|bolum|bölüm|season|episode|series|\b\d{1,2}x\d{1,3}\b|\bs\d{1,2}\s*e\d{1,3}\b|\/dizi\/|\/bolum\/|\/episode\/|\/video\/watch\/|\/show\//i.test(
-      combined
-    );
+  // Require actual episode evidence (avoid saving series overview/detail pages like /show/... or /dizi/...)
+  const se = extractSeasonAndEpisode(title, url);
+  if (se.episode) {
+    return true;
+  }
 
-  return hasEpisodePattern;
+  return /\/bolum\/|\/episode\/|\/video\/watch\//i.test(url);
 }
 
 async function getSettings() {
@@ -271,11 +272,66 @@ async function getSettings() {
     serverUrl: 'http://localhost:3000',
     progressToken: '',
     delaySeconds: 60,
+    newSeriesDelaySeconds: 300,
     customSites: [],
     autoSyncBookmarks: true
   };
   const stored = await chrome.storage.local.get(defaults);
   return { ...defaults, ...stored };
+}
+
+/**
+ * Checks whether a seriesKey is already tracked on the server (or in Chrome "dizi" bookmarks).
+ * Existing series use delaySeconds (default 60s); new series require newSeriesDelaySeconds (default 300s).
+ */
+async function isSeriesAlreadyTracked(seriesKey, settings) {
+  if (!seriesKey) return false;
+
+  try {
+    const cacheData = await chrome.storage.session.get('trackedKeysCache');
+    const cache = cacheData.trackedKeysCache;
+    if (cache && Array.isArray(cache.keys) && Date.now() - cache.fetchedAt < 60000) {
+      return cache.keys.includes(seriesKey);
+    }
+
+    const serverUrl = settings.serverUrl.replace(/\/+$/, '');
+    const headers = {};
+    if (settings.progressToken) {
+      headers['X-Progress-Token'] = settings.progressToken;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(`${serverUrl}/api/progress`, {
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      const json = await res.json();
+      const keys = Array.isArray(json.entries)
+        ? json.entries.map((e) => e.key).filter(Boolean)
+        : [];
+      await chrome.storage.session.set({
+        trackedKeysCache: { keys, fetchedAt: Date.now() }
+      });
+      return keys.includes(seriesKey);
+    }
+  } catch {
+    // Server offline — fall back to Chrome bookmarks check
+  }
+
+  try {
+    const folderId = await getOrCreateDiziFolder();
+    const children = await chrome.bookmarks.getChildren(folderId);
+    return children.some((child) => {
+      if (!child.url) return false;
+      return extractSeriesKey(child.title || '', child.url) === seriesKey;
+    });
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -316,14 +372,19 @@ async function getOrCreateDiziFolder() {
 /**
  * Updates or creates exactly ONE bookmark per series in the "dizi" folder.
  */
-async function syncBookmarkForSeries(title, url) {
+async function syncBookmarkForSeries(title, url, savedEntry = null) {
   try {
     const folderId = await getOrCreateDiziFolder();
     const children = await chrome.bookmarks.getChildren(folderId);
 
-    const targetKey = extractSeriesKey(title, url);
-    const { seriesTitle, episodeLabel } = formatCleanSeriesAndEpisode(targetKey, title, url);
-    const bookmarkTitle = `${seriesTitle} - ${episodeLabel}`;
+    const targetKey = savedEntry?.key || extractSeriesKey(title, url);
+    let bookmarkTitle = title;
+    if (savedEntry?.title && savedEntry?.episodeLabel) {
+      bookmarkTitle = `${savedEntry.title} - ${savedEntry.episodeLabel}`;
+    } else {
+      const { seriesTitle, episodeLabel } = formatCleanSeriesAndEpisode(targetKey, title, url);
+      bookmarkTitle = `${seriesTitle} - ${episodeLabel}`;
+    }
 
     const matchingBookmarks = [];
     for (const child of children) {
@@ -362,7 +423,7 @@ async function syncBookmarkForSeries(title, url) {
 /**
  * Sends episode progress to tv-controller backend
  */
-async function sendProgressToServer(url, title) {
+async function sendProgressToServer(url, title, { completed = false } = {}) {
   const settings = await getSettings();
   const serverUrl = settings.serverUrl.replace(/\/+$/, '');
 
@@ -374,12 +435,15 @@ async function sendProgressToServer(url, title) {
   const res = await fetch(`${serverUrl}/api/progress`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ url, title })
+    body: JSON.stringify({ url, title, completed })
   });
 
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
   }
+
+  // Invalidate tracked keys cache so subsequent checks know this series is tracked
+  await chrome.storage.session.remove('trackedKeysCache').catch(() => {});
 
   return await res.json();
 }
@@ -410,25 +474,28 @@ async function notifyActiveTabCandidate(url, title) {
 /**
  * Executes full save (server + chrome.bookmarks)
  */
-async function executeSave(tabId, url, title) {
+async function executeSave(tabId, url, title, { completed = false } = {}) {
   try {
-    await sendProgressToServer(url, title);
+    const result = await sendProgressToServer(url, title, { completed });
+    const savedEntry = result?.entry || null;
+    const finalUrl = savedEntry?.url || url;
+    const finalTitle = savedEntry?.title || title;
 
     const settings = await getSettings();
     if (settings.autoSyncBookmarks) {
-      await syncBookmarkForSeries(title, url);
+      await syncBookmarkForSeries(title, finalUrl, savedEntry);
     }
 
     if (tabId) {
-      await chrome.action.setBadgeText({ tabId, text: '✓' });
+      await chrome.action.setBadgeText({ tabId, text: completed ? '⏭' : '✓' });
       await chrome.action.setBadgeBackgroundColor({ tabId, color: '#059669' });
     }
 
     // Record last saved
     await chrome.storage.local.set({
       lastSaved: {
-        title,
-        url,
+        title: finalTitle,
+        url: finalUrl,
         savedAt: Date.now()
       }
     });
@@ -450,60 +517,170 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     await chrome.storage.local.set({
       serverUrl: 'http://localhost:3000',
       delaySeconds: 60,
+      newSeriesDelaySeconds: 300,
       autoSyncBookmarks: true,
       customSites: []
     });
   }
 });
 
-async function handleTabEpisodeChange(tabId, currentUrl, currentTitle = '') {
+async function handleTabEpisodeChange(tabId, currentUrl, currentTitle = '', domHint = '') {
   if (!currentUrl) return;
 
   const settings = await getSettings();
-  const isMatch = isEpisodeUrl(currentUrl, currentTitle, settings.customSites);
+  const titleForMatch =
+    !extractSeasonAndEpisode(currentTitle, currentUrl).episode && domHint
+      ? `${currentTitle} ${domHint}`.trim()
+      : currentTitle;
+
+  const isMatch = isEpisodeUrl(currentUrl, titleForMatch, settings.customSites);
 
   if (isMatch) {
     const sessionKey = `tab_${tabId}`;
     const sessionData = await chrome.storage.session.get(sessionKey);
     const existing = sessionData[sessionKey];
 
-    // If already watching this exact URL on this tab, update title if it became available, and let timer run
+    // If already tracking this exact URL on this tab, update title if it became available
     if (existing && existing.url === currentUrl) {
-      if (currentTitle && currentTitle !== existing.title) {
+      if (titleForMatch && titleForMatch !== existing.title) {
         await chrome.storage.session.set({
-          [sessionKey]: { ...existing, title: currentTitle }
+          [sessionKey]: { ...existing, title: titleForMatch }
         });
-        await notifyActiveTabCandidate(currentUrl, currentTitle);
+        await notifyActiveTabCandidate(currentUrl, titleForMatch);
       }
       return;
     }
 
-    // New episode opened on tab
+    const seriesKey = extractSeriesKey(titleForMatch, currentUrl);
+    const isExistingSeries = await isSeriesAlreadyTracked(seriesKey, settings);
+    const requiredSeconds = isExistingSeries
+      ? Number(settings.delaySeconds) || 60
+      : Number(settings.newSeriesDelaySeconds) || 300;
+
+    // New episode opened on tab — wait for real playback / active watching
     await chrome.storage.session.set({
       [sessionKey]: {
         tabId,
         url: currentUrl,
-        title: currentTitle,
+        title: titleForMatch,
+        seriesKey,
+        isExistingSeries,
+        requiredSeconds,
+        hasHeartbeat: false,
+        hasVideo: false,
+        hasIframe: false,
+        isPlaying: false,
+        videoWatchedSeconds: 0,
+        fallbackWatchedSeconds: 0,
+        lastFallbackTickAt: Date.now(),
+        savedCurrent: false,
+        savedCompleted: false,
         startedAt: Date.now()
       }
     });
 
+    // Fallback periodic alarm in case content.js cannot inject on mirror domains or customSites
+    chrome.alarms.create(`watch-fallback-${tabId}`, { periodInMinutes: 0.5 });
+
     // Notify server about candidate immediately
-    await notifyActiveTabCandidate(currentUrl, currentTitle);
+    await notifyActiveTabCandidate(currentUrl, titleForMatch);
 
     // Show waiting badge
     await chrome.action.setBadgeText({ tabId, text: '⏱' });
     await chrome.action.setBadgeBackgroundColor({ tabId, color: '#0891b2' });
-
-    // Schedule delay alarm (e.g. 60 seconds)
-    const delayMinutes = Math.max(0.5, (settings.delaySeconds || 60) / 60);
-    chrome.alarms.create(`save-tab-${tabId}`, { delayInMinutes: delayMinutes });
   } else {
-    // Navigated away from dizi page
-    chrome.alarms.clear(`save-tab-${tabId}`);
+    // Navigated away from episode page
+    chrome.alarms.clear(`watch-fallback-${tabId}`);
     chrome.storage.session.remove(`tab_${tabId}`);
     chrome.action.setBadgeText({ tabId, text: '' }).catch(() => {});
   }
+}
+
+async function handlePlaybackHeartbeat(tabId, msg) {
+  const sessionKey = `tab_${tabId}`;
+  let sessionData = await chrome.storage.session.get(sessionKey);
+  let state = sessionData[sessionKey];
+
+  // If top frame navigated or title updated before tabs.onUpdated fired, ensure state exists
+  if (!state && msg.isTopFrame && msg.url) {
+    await handleTabEpisodeChange(tabId, msg.url, msg.title || '');
+    sessionData = await chrome.storage.session.get(sessionKey);
+    state = sessionData[sessionKey];
+  }
+
+  if (!state) return;
+
+  if (!state.hasHeartbeat) {
+    state.hasHeartbeat = true;
+    chrome.alarms.clear(`watch-fallback-${tabId}`).catch(() => {});
+  }
+
+  const now = Date.now();
+  if (msg.isTopFrame && msg.title && !state.title) {
+    state.title = msg.title;
+  }
+  if (msg.hasIframe) {
+    state.hasIframe = true;
+  }
+
+  if (msg.hasVideo) {
+    state.hasVideo = true;
+    state.isPlaying = Boolean(msg.isPlaying);
+    const reportedWatched = Number(msg.watchedSeconds) || 0;
+    if (reportedWatched > state.videoWatchedSeconds) {
+      state.videoWatchedSeconds = reportedWatched;
+    }
+  } else if (!state.hasVideo) {
+    // Fallback for cross-origin iframe players where <video> is inaccessible:
+    // only count time while the tab is actively being watched (focused & visible or audible).
+    let isActivelyWatching = false;
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      const win = await chrome.windows.get(tab.windowId);
+      isActivelyWatching =
+        Boolean(tab.audible) || (Boolean(tab.active) && Boolean(win.focused) && Boolean(msg.isVisible));
+    } catch {
+      isActivelyWatching = false;
+    }
+
+    if (isActivelyWatching) {
+      if (state.lastFallbackTickAt) {
+        const deltaSec = (now - state.lastFallbackTickAt) / 1000;
+        if (deltaSec > 0 && deltaSec <= 25) {
+          state.fallbackWatchedSeconds += deltaSec;
+        }
+      }
+      state.lastFallbackTickAt = now;
+    } else {
+      state.lastFallbackTickAt = null;
+    }
+  }
+
+  const effectiveSeconds = state.hasVideo
+    ? state.videoWatchedSeconds
+    : state.fallbackWatchedSeconds;
+
+  // 1. Save current episode once required watch threshold is met
+  if (!state.savedCurrent && effectiveSeconds >= state.requiredSeconds) {
+    state.savedCurrent = true;
+    await chrome.storage.session.set({ [sessionKey]: state });
+    await executeSave(tabId, state.url, state.title, { completed: false });
+  }
+
+  // 2. If episode finished (ended or near end) and user actually watched it, save next episode (+1)
+  if (
+    (msg.ended || msg.isNearEnd) &&
+    !state.savedCompleted &&
+    (state.savedCurrent || effectiveSeconds >= 30)
+  ) {
+    state.savedCompleted = true;
+    state.savedCurrent = true;
+    await chrome.storage.session.set({ [sessionKey]: state });
+    await executeSave(tabId, state.url, state.title, { completed: true });
+    return;
+  }
+
+  await chrome.storage.session.set({ [sessionKey]: state });
 }
 
 // Watch tab navigations and title changes
@@ -515,32 +692,64 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 // Watch tab closures to clean up alarms
 chrome.tabs.onRemoved.addListener((tabId) => {
-  chrome.alarms.clear(`save-tab-${tabId}`);
+  chrome.alarms.clear(`watch-fallback-${tabId}`);
   chrome.storage.session.remove(`tab_${tabId}`);
 });
 
-// Handle alarms
+// Handle alarms (fallback active-watch tracker when content.js is not injected on a mirror/custom domain)
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name.startsWith('save-tab-')) {
-    const tabId = Number(alarm.name.replace('save-tab-', ''));
-    if (!tabId) return;
+  if (!alarm.name.startsWith('watch-fallback-')) return;
+  const tabId = Number(alarm.name.replace('watch-fallback-', ''));
+  if (!tabId) return;
 
-    const sessionKey = `tab_${tabId}`;
-    const sessionData = await chrome.storage.session.get(sessionKey);
-    const data = sessionData[sessionKey];
-    if (!data) return;
+  const sessionKey = `tab_${tabId}`;
+  const sessionData = await chrome.storage.session.get(sessionKey);
+  const state = sessionData[sessionKey];
+  if (!state || state.hasHeartbeat || state.savedCurrent) {
+    chrome.alarms.clear(alarm.name).catch(() => {});
+    return;
+  }
 
-    // Check if the tab is still open and on the same URL
-    try {
-      const tab = await chrome.tabs.get(tabId);
-      if (tab && tab.url === data.url) {
-        await executeSave(tabId, data.url, tab.title || data.title);
-      }
-    } catch {
-      // Tab was closed
-    } finally {
-      await chrome.storage.session.remove(sessionKey);
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab || tab.url !== state.url) {
+      chrome.alarms.clear(alarm.name).catch(() => {});
+      return;
     }
+
+    const win = await chrome.windows.get(tab.windowId);
+    const isActivelyWatching = Boolean(tab.audible) || (Boolean(tab.active) && Boolean(win.focused));
+    const now = Date.now();
+
+    if (isActivelyWatching) {
+      if (state.lastFallbackTickAt) {
+        const deltaSec = (now - state.lastFallbackTickAt) / 1000;
+        if (deltaSec > 0 && deltaSec <= 90) {
+          state.fallbackWatchedSeconds += deltaSec;
+        }
+      }
+      state.lastFallbackTickAt = now;
+    } else {
+      state.lastFallbackTickAt = null;
+    }
+
+    if (tab.title && !state.title) {
+      state.title = tab.title;
+    }
+
+    if (!state.savedCurrent && state.fallbackWatchedSeconds >= state.requiredSeconds) {
+      state.savedCurrent = true;
+      await chrome.storage.session.set({ [sessionKey]: state });
+      await executeSave(tabId, state.url, tab.title || state.title, { completed: false });
+      chrome.alarms.clear(alarm.name).catch(() => {});
+      return;
+    }
+
+    await chrome.storage.session.set({ [sessionKey]: state });
+  } catch {
+    // Tab was closed
+    chrome.alarms.clear(alarm.name).catch(() => {});
+    await chrome.storage.session.remove(sessionKey);
   }
 });
 
@@ -551,7 +760,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case 'PAGE_UPDATED': {
         const tabId = sender.tab?.id;
         if (tabId && msg.url) {
-          await handleTabEpisodeChange(tabId, msg.url, msg.title || sender.tab?.title || '');
+          await handleTabEpisodeChange(
+            tabId,
+            msg.url,
+            msg.title || sender.tab?.title || '',
+            msg.domHint || ''
+          );
+        }
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'PLAYBACK_HEARTBEAT': {
+        const tabId = sender.tab?.id;
+        if (tabId) {
+          await handlePlaybackHeartbeat(tabId, msg);
         }
         sendResponse({ ok: true });
         break;
@@ -565,9 +788,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         const settings = await getSettings();
-        const isDizi = isEpisodeUrl(activeTab.url || '', activeTab.title || '', settings.customSites);
         const sessionData = await chrome.storage.session.get(`tab_${activeTab.id}`);
         const pending = sessionData[`tab_${activeTab.id}`];
+        const effectiveTitle = pending?.title || activeTab.title || '';
+        const isDizi =
+          Boolean(pending) ||
+          isEpisodeUrl(activeTab.url || '', effectiveTitle, settings.customSites);
 
         let hostname = '';
         try {
@@ -578,18 +804,33 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         let parsed = null;
         if (isDizi) {
-          const key = extractSeriesKey(activeTab.title || '', activeTab.url || '');
-          parsed = formatCleanSeriesAndEpisode(key, activeTab.title || '', activeTab.url || '');
+          const key = extractSeriesKey(effectiveTitle, activeTab.url || '');
+          parsed = formatCleanSeriesAndEpisode(key, effectiveTitle, activeTab.url || '');
         }
+
+        const watchedSeconds = pending
+          ? Math.floor(pending.hasVideo ? pending.videoWatchedSeconds : pending.fallbackWatchedSeconds)
+          : 0;
 
         sendResponse({
           ok: true,
           tabId: activeTab.id,
           url: activeTab.url,
-          title: activeTab.title,
+          title: effectiveTitle,
           hostname,
           isDizi,
-          isPending: Boolean(pending),
+          isPending: Boolean(pending && !pending.savedCurrent),
+          watchState: pending
+            ? {
+                isExistingSeries: Boolean(pending.isExistingSeries),
+                requiredSeconds: pending.requiredSeconds,
+                watchedSeconds,
+                hasVideo: Boolean(pending.hasVideo),
+                isPlaying: Boolean(pending.isPlaying),
+                savedCurrent: Boolean(pending.savedCurrent),
+                savedCompleted: Boolean(pending.savedCompleted)
+              }
+            : null,
           parsed,
           settings
         });

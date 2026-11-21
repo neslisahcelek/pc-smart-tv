@@ -375,4 +375,87 @@ describe('Remote-to-TV WebSocket Vertical Slice & Integration', () => {
     expect(initialSync.type).toBe('STATE_SYNC');
     trustedClient.close();
   });
+
+  it('routes OPEN_SHORTCUT and OPEN_YOUTUBE_EXTERNAL to only the single active TV client when multiple TV clients are connected', async () => {
+    server = await createServer(
+      {
+        port: 0,
+        host: '127.0.0.1',
+        allowLan: false,
+        youtubeApiKey: null
+      },
+      { isProduction: true }
+    );
+
+    const baseWsUrl = `ws://127.0.0.1:${server.port}/ws`;
+    const tv1 = new WebSocket(`${baseWsUrl}?role=tv`);
+    await waitForMessage(tv1, (m) => m.type === 'STATE_SYNC' && m.state.tvConnectedCount === 1);
+
+    const tv2 = new WebSocket(`${baseWsUrl}?role=tv`);
+    await waitForMessage(tv2, (m) => m.type === 'STATE_SYNC' && m.state.tvConnectedCount === 2);
+
+    const remote = new WebSocket(`${baseWsUrl}?role=remote`);
+    await waitForMessage(
+      remote,
+      (m) => m.type === 'STATE_SYNC' && m.state.remoteConnectedCount === 1
+    );
+
+    let tv1ReceivedOpen = 0;
+    let tv2ReceivedOpen = 0;
+    tv1.on('message', (raw) => {
+      const m = JSON.parse(raw.toString()) as ServerBroadcastMessage;
+      if (
+        m.type === 'TV_COMMAND' &&
+        (m.command.type === 'OPEN_SHORTCUT' || m.command.type === 'OPEN_YOUTUBE_EXTERNAL')
+      ) {
+        tv1ReceivedOpen++;
+      }
+    });
+    tv2.on('message', (raw) => {
+      const m = JSON.parse(raw.toString()) as ServerBroadcastMessage;
+      if (
+        m.type === 'TV_COMMAND' &&
+        (m.command.type === 'OPEN_SHORTCUT' || m.command.type === 'OPEN_YOUTUBE_EXTERNAL')
+      ) {
+        tv2ReceivedOpen++;
+      }
+    });
+
+    // tv2 connected most recently, so only tv2 should receive OPEN_SHORTCUT
+    const tv2ShortcutPromise = waitForMessage(
+      tv2,
+      (m) => m.type === 'TV_COMMAND' && m.command.type === 'OPEN_SHORTCUT'
+    );
+    remote.send(JSON.stringify({ type: 'OPEN_SHORTCUT', shortcutId: 'netflix' }));
+    await tv2ShortcutPromise;
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(tv2ReceivedOpen).toBe(1);
+    expect(tv1ReceivedOpen).toBe(0);
+
+    // Focus tv1 via TV_STATUS_UPDATE -> now only tv1 should receive OPEN_YOUTUBE_EXTERNAL
+    tv1.send(JSON.stringify({ type: 'TV_STATUS_UPDATE', state: {} }));
+    await new Promise((r) => setTimeout(r, 40));
+
+    const tv1YtPromise = waitForMessage(
+      tv1,
+      (m) => m.type === 'TV_COMMAND' && m.command.type === 'OPEN_YOUTUBE_EXTERNAL'
+    );
+    remote.send(
+      JSON.stringify({
+        type: 'OPEN_YOUTUBE_EXTERNAL',
+        target: 'video',
+        queryOrVideoId: 'dQw4w9WgXcQ'
+      })
+    );
+    await tv1YtPromise;
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(tv1ReceivedOpen).toBe(1);
+    expect(tv2ReceivedOpen).toBe(1);
+
+    tv1.close();
+    tv2.close();
+    remote.close();
+  });
 });

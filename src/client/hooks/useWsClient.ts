@@ -42,10 +42,26 @@ export function useWsClient(
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const disposedRef = useRef(false);
   const onTvCommandRef = useRef(onTvCommand);
   onTvCommandRef.current = onTvCommand;
 
+  const detachAndCloseSocket = useCallback((ws: WebSocket | null) => {
+    if (!ws) return;
+    ws.onopen = null;
+    ws.onmessage = null;
+    ws.onclose = null;
+    ws.onerror = null;
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      ws.close();
+    }
+  }, []);
+
   const connect = useCallback(() => {
+    if (disposedRef.current) {
+      return;
+    }
+
     if (reconnectTimerRef.current !== null) {
       window.clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -59,6 +75,12 @@ export function useWsClient(
       return;
     }
 
+    // Detach any lingering CLOSING socket before opening a new one so its onclose cannot clobber wsRef
+    if (wsRef.current) {
+      detachAndCloseSocket(wsRef.current);
+      wsRef.current = null;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws?role=${role}`;
 
@@ -68,12 +90,14 @@ export function useWsClient(
     wsRef.current = ws;
 
     ws.onopen = () => {
+      if (wsRef.current !== ws) return;
       reconnectAttemptsRef.current = 0;
       setConnectionStatus('connected');
       setLastError(null);
     };
 
     ws.onmessage = (event) => {
+      if (wsRef.current !== ws) return;
       try {
         const msg = JSON.parse(String(event.data)) as ServerBroadcastMessage;
         if (msg.type === 'STATE_SYNC') {
@@ -89,7 +113,9 @@ export function useWsClient(
     };
 
     ws.onclose = () => {
+      if (wsRef.current !== ws) return;
       wsRef.current = null;
+      if (disposedRef.current) return;
       setConnectionStatus('reconnecting');
       const attempt = reconnectAttemptsRef.current;
       reconnectAttemptsRef.current = attempt + 1;
@@ -100,11 +126,13 @@ export function useWsClient(
     };
 
     ws.onerror = () => {
+      if (wsRef.current !== ws) return;
       ws.close();
     };
-  }, [role]);
+  }, [detachAndCloseSocket, role]);
 
   useEffect(() => {
+    disposedRef.current = false;
     connect();
 
     // Immediately recover WebSocket when iPhone Safari wakes from sleep or regains Wi-Fi
@@ -124,15 +152,18 @@ export function useWsClient(
     window.addEventListener('focus', handleVisibilityOrOnline);
 
     return () => {
+      disposedRef.current = true;
       document.removeEventListener('visibilitychange', handleVisibilityOrOnline);
       window.removeEventListener('online', handleVisibilityOrOnline);
       window.removeEventListener('focus', handleVisibilityOrOnline);
       if (reconnectTimerRef.current !== null) {
         window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
-      wsRef.current?.close();
+      detachAndCloseSocket(wsRef.current);
+      wsRef.current = null;
     };
-  }, [connect]);
+  }, [connect, detachAndCloseSocket]);
 
   const sendCommand = useCallback((message: ValidatedClientMessage): boolean => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

@@ -84,7 +84,7 @@ export function extractSeriesKey(title: string, rawUrl = ''): string {
 
   let clean = title
     .replace(
-      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
+      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|diziyou|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
       ''
     )
     .replace(/\s*\|\s*max\b/gi, '')
@@ -166,9 +166,10 @@ export function extractSeasonAndEpisode(
   // 2. Try extracting season & episode from URL path
   const seUrlMatch =
     rawUrl.match(/(?:sezon|season)-(\d+)\/(?:bolum|episode)-(\d+)/i) ??
+    rawUrl.match(/(?:sezon|season)[-_](\d+)[-_](?:bolum|episode)[-_](\d+)/i) ??
     rawUrl.match(/(\d+)-(?:sezon|season)-(\d+)-(?:bolum|episode)/i) ??
     rawUrl.match(/[-/](\d{1,2})x(\d{1,3})(?:$|[-/?#])/i) ??
-    rawUrl.match(/[-/]s(\d{1,2})e(\d{1,3})(?:$|[-/?#])/i);
+    rawUrl.match(/[-/]s(\d{1,2})[-_]?e(\d{1,3})(?:$|[-/?#])/i);
 
   if (seUrlMatch) {
     return {
@@ -268,7 +269,7 @@ export function formatCleanSeriesAndEpisode(
   // Otherwise clean up rawTitle to get a nice human-readable Series Title
   let cleaned = rawTitle
     .replace(
-      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
+      /\b(apple\s*tv\+?|hbo\s*max|dizipal\d*|dizibox|dizigom\d*|dizilla|diziyou|hdfilmcehennemi|filmmakinesi|selcukflix|yabancidizi(\.io)?)\b/gi,
       ''
     )
     .replace(/\s*\|\s*max\b/gi, '')

@@ -318,7 +318,7 @@ export const YouTubePlayerView = forwardRef<YouTubePlayerHandle, YouTubePlayerVi
 
     return (
       <div className="tv-player-stage">
-        <div className="tv-player-header">
+        <header className="tv-player-header">
           <div className="tv-player-meta">
             <span className="tv-badge-live">YOUTUBE OYNATICI</span>
             <h2 className="tv-player-title">{video.title}</h2>
@@ -342,7 +342,7 @@ export const YouTubePlayerView = forwardRef<YouTubePlayerHandle, YouTubePlayerVi
               ⌂ Ana Ekrana Dön
             </button>
           </div>
-        </div>
+        </header>
 
         <div className="tv-player-viewport-wrapper">
           <div ref={mountNodeRef} className="tv-player-iframe-container" />

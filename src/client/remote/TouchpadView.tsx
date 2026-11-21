@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   RotateCcw,
   RotateCw,
@@ -71,6 +71,12 @@ export function TouchpadView({
   const [showVolumeCapsule, setShowVolumeCapsule] = useState<boolean>(false);
   const [showKeyboardSheet, setShowKeyboardSheet] = useState<boolean>(false);
   const [keyboardText, setKeyboardText] = useState<string>('');
+  const [keyboardViewport, setKeyboardViewport] = useState<{
+    top: number;
+    height: number;
+    isKeyboardOpen: boolean;
+  } | null>(null);
+  const keyboardInputId = useId();
   const keyboardInputRef = useRef<HTMLInputElement | null>(null);
   const volumeCapsuleRef = useRef<HTMLDivElement | null>(null);
   const [isDragLocked, setIsDragLocked] = useState<boolean>(false);
@@ -385,6 +391,22 @@ export function TouchpadView({
     };
   }, [showScrollStrip]);
 
+  useEffect(() => {
+    if (!showSettingsSheet && !showGestureGuide && !showKeyboardSheet && !showVolumeCapsule) {
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowSettingsSheet(false);
+        setShowGestureGuide(false);
+        setShowKeyboardSheet(false);
+        setShowVolumeCapsule(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSettingsSheet, showGestureGuide, showKeyboardSheet, showVolumeCapsule]);
+
   // Desktop Pointer / Mouse Event Handlers (for laptop and desktop testing)
   const isPointerDraggingRef = useRef<boolean>(false);
   const pointerLastPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -538,15 +560,62 @@ export function TouchpadView({
     };
   }, [isDragLocked, sendCommand]);
 
-  // Auto-focus text input when keyboard sheet opens
+  // Auto-focus text input and keep drawer above virtual keyboard via visualViewport
   useEffect(() => {
-    if (showKeyboardSheet) {
-      const timer = setTimeout(() => {
-        keyboardInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
+    if (!showKeyboardSheet) {
+      setKeyboardViewport(null);
+      return;
     }
+
+    const updateViewport = () => {
+      const vv = window.visualViewport;
+      if (!vv) {
+        setKeyboardViewport(null);
+        return;
+      }
+      const layoutHeight = window.innerHeight || document.documentElement.clientHeight;
+      const isKeyboardOpen = layoutHeight - vv.height > 100;
+      setKeyboardViewport({
+        top: Math.max(0, vv.offsetTop),
+        height: vv.height,
+        isKeyboardOpen,
+      });
+    };
+
+    updateViewport();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', updateViewport);
+    vv?.addEventListener('scroll', updateViewport);
+    window.addEventListener('resize', updateViewport);
+
+    const timer = setTimeout(() => {
+      keyboardInputRef.current?.focus();
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      vv?.removeEventListener('resize', updateViewport);
+      vv?.removeEventListener('scroll', updateViewport);
+      window.removeEventListener('resize', updateViewport);
+    };
   }, [showKeyboardSheet]);
+
+  const handleSendTextAndEnter = useCallback(() => {
+    if (!keyboardText) return;
+    sendCommand({ type: 'TYPE_TEXT', text: keyboardText });
+    sendCommand({ type: 'KEY_PRESS', key: 'ENTER' });
+    triggerFeedback('Gönderildi + Enter');
+    setKeyboardText('');
+    setShowKeyboardSheet(false);
+  }, [keyboardText, sendCommand, triggerFeedback]);
+
+  const handleSendTextOnly = useCallback(() => {
+    if (!keyboardText) return;
+    sendCommand({ type: 'TYPE_TEXT', text: keyboardText });
+    triggerFeedback(`PC'ye Yazıldı: ${keyboardText.slice(0, 16)}`);
+    setKeyboardText('');
+    keyboardInputRef.current?.focus();
+  }, [keyboardText, sendCommand, triggerFeedback]);
 
   // Close volume capsule on outside clicks
   useEffect(() => {
@@ -818,10 +887,20 @@ export function TouchpadView({
 
       {/* 4. Settings Drawer / Bottom Sheet Modal */}
       {showSettingsSheet && (
-        <div className="touchpad-sheet-backdrop" onClick={() => setShowSettingsSheet(false)}>
-          <div className="touchpad-sheet" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="touchpad-sheet-backdrop"
+          role="presentation"
+          onClick={() => setShowSettingsSheet(false)}
+        >
+          <div
+            className="touchpad-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Touchpad ve Mouse Ayarları"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="touchpad-sheet-handle" />
-            <div className="touchpad-sheet-header">
+            <header className="touchpad-sheet-header">
               <div className="touchpad-sheet-title">
                 <Settings size={18} strokeWidth={2.2} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
                 <span>Touchpad & Mouse Ayarları</span>
@@ -834,7 +913,7 @@ export function TouchpadView({
               >
                 <X size={18} strokeWidth={2.5} />
               </button>
-            </div>
+            </header>
 
             <div className="touchpad-sheet-content">
               {/* Sensitivity Slider + Presets */}
@@ -850,6 +929,7 @@ export function TouchpadView({
                   step="0.1"
                   value={sensitivity}
                   className="touchpad-sheet-slider"
+                  aria-label="İmleç Hassasiyeti"
                   onChange={(e) => handleSensitivityChange(parseFloat(e.target.value))}
                 />
                 <div className="touchpad-sheet-chips">
@@ -964,10 +1044,20 @@ export function TouchpadView({
 
       {/* 4.5 Stageshow-Craft Animated Gesture Guide Modal */}
       {showGestureGuide && (
-        <div className="touchpad-sheet-backdrop" onClick={() => setShowGestureGuide(false)}>
-          <div className="touchpad-sheet touchpad-gesture-guide-sheet" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="touchpad-sheet-backdrop"
+          role="presentation"
+          onClick={() => setShowGestureGuide(false)}
+        >
+          <div
+            className="touchpad-sheet touchpad-gesture-guide-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Dokunmatik Jest ve Hareket Rehberi"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="touchpad-sheet-handle" />
-            <div className="touchpad-sheet-header">
+            <header className="touchpad-sheet-header">
               <div className="touchpad-sheet-title">
                 <Sparkles size={18} strokeWidth={2.2} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
                 <span>Dokunmatik Jest & Hareket Rehberi</span>
@@ -980,7 +1070,7 @@ export function TouchpadView({
               >
                 <X size={18} strokeWidth={2.5} />
               </button>
-            </div>
+            </header>
 
             <div className="touchpad-sheet-content">
               {/* Practice Canvas Sandbox */}
@@ -1073,10 +1163,36 @@ export function TouchpadView({
 
       {/* 5. Keyboard Modal Sheet */}
       {showKeyboardSheet && (
-        <div className="touchpad-sheet-backdrop" onClick={() => setShowKeyboardSheet(false)}>
-          <div className="touchpad-sheet touchpad-keyboard-sheet" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="touchpad-sheet-backdrop"
+          role="presentation"
+          style={
+            keyboardViewport
+              ? {
+                  top: `${keyboardViewport.top}px`,
+                  height: `${keyboardViewport.height}px`,
+                  bottom: 'auto',
+                }
+              : undefined
+          }
+          onClick={() => setShowKeyboardSheet(false)}
+        >
+          <div
+            className={`touchpad-sheet touchpad-keyboard-sheet${
+              keyboardViewport?.isKeyboardOpen ? ' is-keyboard-open' : ''
+            }`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="PC'ye Klavye ve Metin Gönder"
+            style={
+              keyboardViewport
+                ? { maxHeight: `${Math.max(200, keyboardViewport.height - 12)}px` }
+                : undefined
+            }
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="touchpad-sheet-handle" />
-            <div className="touchpad-sheet-header">
+            <header className="touchpad-sheet-header">
               <div className="touchpad-sheet-title">
                 <Keyboard size={18} strokeWidth={2.2} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
                 <span>PC'ye Klavye & Metin Gönder</span>
@@ -1089,7 +1205,7 @@ export function TouchpadView({
               >
                 <X size={18} strokeWidth={2.5} />
               </button>
-            </div>
+            </header>
 
             <div className="touchpad-sheet-content">
               {/* Form with Input and Send Buttons */}
@@ -1097,19 +1213,19 @@ export function TouchpadView({
                 className="touchpad-keyboard-modal-form"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (keyboardText) {
-                    sendCommand({ type: 'TYPE_TEXT', text: keyboardText });
-                    triggerFeedback(`PC'ye Yazıldı: ${keyboardText.slice(0, 16)}`);
-                    setKeyboardText('');
-                    keyboardInputRef.current?.focus();
-                  }
+                  handleSendTextAndEnter();
                 }}
               >
                 <div className="touchpad-keyboard-input-wrap">
+                  <label htmlFor={keyboardInputId} className="touchpad-sr-only">
+                    PC'ye yazılacak metin
+                  </label>
                   <input
+                    id={keyboardInputId}
                     ref={keyboardInputRef}
                     autoFocus
                     type="text"
+                    enterKeyHint="send"
                     className="touchpad-keyboard-modal-input"
                     value={keyboardText}
                     onChange={(e) => setKeyboardText(e.target.value)}
@@ -1132,9 +1248,10 @@ export function TouchpadView({
 
                 <div className="touchpad-keyboard-actions-row">
                   <button
-                    type="submit"
+                    type="button"
                     className="touchpad-modal-send-btn"
                     onPointerDown={(e) => e.preventDefault()}
+                    onClick={handleSendTextOnly}
                     disabled={!keyboardText}
                     title="Yazılan Metni PC'ye Gönder"
                   >
@@ -1143,18 +1260,9 @@ export function TouchpadView({
                   </button>
 
                   <button
-                    type="button"
+                    type="submit"
                     className="touchpad-modal-send-enter-btn"
                     disabled={!keyboardText}
-                    onClick={() => {
-                      if (keyboardText) {
-                        sendCommand({ type: 'TYPE_TEXT', text: keyboardText });
-                        sendCommand({ type: 'KEY_PRESS', key: 'ENTER' });
-                        triggerFeedback('Gönderildi + Enter');
-                        setKeyboardText('');
-                        setShowKeyboardSheet(false);
-                      }
-                    }}
                     title="Metni Gönder ve PC'de Enter'a Basıp Kapat"
                   >
                     <CornerDownLeft size={15} strokeWidth={2.2} />

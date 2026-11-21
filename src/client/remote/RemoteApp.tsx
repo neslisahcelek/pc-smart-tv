@@ -55,6 +55,7 @@ function YouTubeIcon({ size = 20 }: { size?: number }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       <rect x="2" y="4" width="20" height="16" rx="5" />
       <polygon points="10 8.5 16 12 10 15.5 10 8.5" fill="currentColor" />
@@ -315,7 +316,7 @@ export function RemoteApp() {
     <div className="remote-shell">
       {/* Sticky iPhone Top Status Header */}
       <header className="remote-header">
-        <div className="remote-header-top">
+        <div className="remote-topbar-row">
           <div className="remote-title-group">
             <span className="remote-app-icon">
               <Tv size={16} strokeWidth={2.2} />
@@ -330,7 +331,7 @@ export function RemoteApp() {
             </div>
           </div>
 
-          <div className="remote-header-actions">
+          <div className="remote-topbar-actions">
             <button
               type="button"
               className="remote-theme-btn"
@@ -568,13 +569,13 @@ export function RemoteApp() {
             {/* Active TV Episode / Save Progress Prompt */}
             {serverState.activeTabCandidate && (
               <div className="remote-active-tab-card">
-                <div className="remote-active-tab-header">
+                <header className="remote-active-tab-header">
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <Tv size={16} strokeWidth={2.2} />
                     TV'de Açık Dizi
                   </span>
                   <span>Canlı</span>
-                </div>
+                </header>
                 <div className="remote-active-tab-title">
                   {serverState.activeTabCandidate.title || serverState.activeTabCandidate.url}
                 </div>
@@ -653,10 +654,10 @@ export function RemoteApp() {
 
             {/* Volume Controls */}
             <div className="remote-volume-card">
-              <div className="remote-volume-header">
+              <header className="remote-volume-header">
                 <span>TV / Bilgisayar Ses Seviyesi</span>
                 <strong>{serverState.muted ? 'Sessiz (Mute)' : `%${serverState.volume}`}</strong>
-              </div>
+              </header>
 
               <input
                 type="range"
@@ -872,7 +873,7 @@ export function RemoteApp() {
 
             {showRemovedWatchLater && removedPlaylistItems.length > 0 && (
               <div className="remote-removed-drawer">
-                <div className="remote-removed-header">
+                <header className="remote-removed-header">
                   <span>Kaldırılan Videolar ({removedPlaylistItems.length})</span>
                   <button
                     type="button"
@@ -881,7 +882,7 @@ export function RemoteApp() {
                   >
                     Tümünü Geri Al
                   </button>
-                </div>
+                </header>
                 <div className="remote-removed-list">
                   {removedPlaylistItems.map((video) => (
                     <div key={video.videoId} className="remote-removed-item">
@@ -972,7 +973,7 @@ export function RemoteApp() {
 
             {/* iOS Share Sheet Shortcut Setup Helper (discreetly placed at bottom) */}
             {isShareSetupDismissed ? (
-              <div className="remote-share-setup-hidden-footer">
+              <footer className="remote-share-setup-hidden-footer">
                 <button
                   type="button"
                   className="remote-btn-text-muted"
@@ -985,7 +986,7 @@ export function RemoteApp() {
                 >
                   <Sparkles size={12} strokeWidth={2} /> iPhone Paylaşım Kestirmesi Kurulumunu Göster
                 </button>
-              </div>
+              </footer>
             ) : (
               <details className="remote-share-setup-details">
                 <summary className="remote-share-setup-summary">
@@ -1120,6 +1121,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Yukarı taşı"
                         disabled={idx === 0}
                         onClick={() =>
                           sendCommand({
@@ -1134,6 +1136,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Aşağı taşı"
                         disabled={idx === sections.length - 1}
                         onClick={() =>
                           sendCommand({
@@ -1148,6 +1151,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label={sec.hidden ? 'Bölümü göster' : 'Bölümü gizle'}
                         onClick={() =>
                           sendCommand({
                             type: 'TOGGLE_SECTION_HIDDEN',
@@ -1203,6 +1207,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Sola taşı"
                         disabled={idx === 0 || Boolean(item.hidden)}
                         onClick={() =>
                           sendCommand({
@@ -1217,6 +1222,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Sağa taşı"
                         disabled={idx === platforms.length - 1 || Boolean(item.hidden)}
                         onClick={() =>
                           sendCommand({
@@ -1231,6 +1237,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label={item.hidden ? 'Kısayolu göster' : 'Kısayolu gizle'}
                         onClick={() =>
                           sendCommand({
                             type: 'TOGGLE_SHORTCUT_HIDDEN',
@@ -1244,6 +1251,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn remote-mini-btn-danger"
+                        aria-label="Kısayolu sil"
                         onClick={() =>
                           sendCommand({
                             type: 'DELETE_SHORTCUT',
@@ -1299,6 +1307,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Sola taşı"
                         disabled={idx === 0 || Boolean(item.hidden)}
                         onClick={() =>
                           sendCommand({
@@ -1313,6 +1322,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Sağa taşı"
                         disabled={idx === diziSites.length - 1 || Boolean(item.hidden)}
                         onClick={() =>
                           sendCommand({
@@ -1327,6 +1337,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label={item.hidden ? 'Kısayolu göster' : 'Kısayolu gizle'}
                         onClick={() =>
                           sendCommand({
                             type: 'TOGGLE_SHORTCUT_HIDDEN',
@@ -1340,6 +1351,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn remote-mini-btn-danger"
+                        aria-label="Kısayolu sil"
                         onClick={() =>
                           sendCommand({
                             type: 'DELETE_SHORTCUT',
@@ -1363,12 +1375,12 @@ export function RemoteApp() {
                 {/* Active TV Episode / Save Progress Prompt in Bookmarks Tab */}
             {serverState.activeTabCandidate && (
               <div className="remote-active-tab-card">
-                <div className="remote-active-tab-header">
+                <header className="remote-active-tab-header">
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <Tv size={16} strokeWidth={2.2} /> TV'de Açık Dizi Algılandı
                   </span>
                   <span>Canlı</span>
-                </div>
+                </header>
                 <div className="remote-active-tab-title">
                   {serverState.activeTabCandidate.title || serverState.activeTabCandidate.url}
                 </div>
@@ -1480,6 +1492,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Yukarı taşı"
                         disabled={idx === 0 || Boolean(item.hidden)}
                         onClick={() =>
                           sendCommand({
@@ -1494,6 +1507,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label="Aşağı taşı"
                         disabled={idx === filteredBookmarks.length - 1 || Boolean(item.hidden)}
                         onClick={() =>
                           sendCommand({
@@ -1508,6 +1522,7 @@ export function RemoteApp() {
                       <button
                         type="button"
                         className="remote-mini-btn"
+                        aria-label={item.hidden ? 'Diziyi göster' : 'Diziyi gizle'}
                         onClick={() =>
                           sendCommand({
                             type: 'TOGGLE_SHORTCUT_HIDDEN',

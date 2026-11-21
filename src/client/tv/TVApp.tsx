@@ -142,8 +142,19 @@ export function TVApp() {
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
 
+  const lastOpenedUrlRef = useRef<{ url: string; at: number } | null>(null);
+
   const openExternalUrlInNewTab = useCallback(
     (url: string, label: string) => {
+      const now = Date.now();
+      if (
+        lastOpenedUrlRef.current &&
+        lastOpenedUrlRef.current.url === url &&
+        now - lastOpenedUrlRef.current.at < 1000
+      ) {
+        return;
+      }
+      lastOpenedUrlRef.current = { url, at: now };
       setBlockedPopupUrl(null);
       const win = window.open(url, '_blank', 'noopener,noreferrer');
       if (win) {
@@ -528,7 +539,7 @@ export function TVApp() {
           isEditMode ? 'is-section-editing' : ''
         }`}
       >
-        <div className="tv-section-header">
+        <header className="tv-section-header">
           <div className="tv-section-title-group">
             <h2 className="tv-section-title">{sec.title}</h2>
             {sec.hidden && <span className="tv-hidden-pill">Gizli</span>}
@@ -576,7 +587,7 @@ export function TVApp() {
               </button>
             </div>
           )}
-        </div>
+        </header>
 
         {visibleItems.length === 0 ? (
           <div className="tv-empty-category">
@@ -827,7 +838,7 @@ export function TVApp() {
         }`}
         aria-label={sec.title}
       >
-        <div className="tv-section-header">
+        <header className="tv-section-header">
           <div className="tv-section-title-group">
             <h2 className="tv-section-title">
               {sec.title}
@@ -896,7 +907,7 @@ export function TVApp() {
               </button>
             </div>
           )}
-        </div>
+        </header>
 
         {watchLaterLoading && watchLaterVideos.length === 0 ? (
           <div className="tv-empty-category">
@@ -1123,10 +1134,10 @@ export function TVApp() {
         {/* 2. YOUTUBE / WATCH LATER COMPACT TILE */}
         {topWatchLater && (
           <div className="tv-bento-tile tv-bento-yt">
-            <div className="tv-bento-tile-header">
+            <header className="tv-bento-tile-header">
               <span className="tv-bento-tile-eyebrow">Daha Sonra İzle</span>
               <span className="tv-bento-pill">YouTube</span>
-            </div>
+            </header>
             <div className="tv-bento-yt-body">
               <div className="tv-bento-yt-thumb-wrap">
                 <img

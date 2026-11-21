@@ -617,7 +617,8 @@ export async function createServer(
           url: rawUrl,
           title: rawTitle || undefined,
           season: Number.isInteger(rawSeason) && (rawSeason ?? 0) > 0 ? rawSeason : undefined,
-          episode: Number.isInteger(rawEpisode) && (rawEpisode ?? 0) > 0 ? rawEpisode : undefined
+          episode: Number.isInteger(rawEpisode) && (rawEpisode ?? 0) > 0 ? rawEpisode : undefined,
+          completed: Boolean(req.body?.completed)
         },
         config.progressFilePath
       );

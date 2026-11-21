@@ -163,6 +163,7 @@ function describeCommandInTurkish(
 export class WsHub {
   private readonly wss: WebSocketServer;
   private readonly tvClients = new Set<WebSocket>();
+  private activeTvClient: WebSocket | null = null;
   private readonly remoteClients = new Set<WebSocket>();
   private readonly initialShortcuts: ShortcutItem[];
   private readonly allowedShortcutIds: Set<string>;
@@ -301,8 +302,7 @@ export class WsHub {
       for (const client of this.wss.clients) {
         const clientWithAlive = client as WebSocket & { isAlive?: boolean };
         if (clientWithAlive.isAlive === false) {
-          this.tvClients.delete(client);
-          this.remoteClients.delete(client);
+          this.removeClient(client);
           client.terminate();
           stateChanged = true;
           continue;
@@ -324,6 +324,34 @@ export class WsHub {
     };
   }
 
+  private getPrimaryTvClient(): WebSocket | null {
+    if (
+      this.activeTvClient &&
+      this.tvClients.has(this.activeTvClient) &&
+      this.activeTvClient.readyState === WebSocket.OPEN
+    ) {
+      return this.activeTvClient;
+    }
+
+    let fallback: WebSocket | null = null;
+    for (const client of this.tvClients) {
+      if (client.readyState === WebSocket.OPEN) {
+        fallback = client;
+      }
+    }
+    this.activeTvClient = fallback;
+    return fallback;
+  }
+
+  private removeClient(ws: WebSocket): void {
+    this.tvClients.delete(ws);
+    this.remoteClients.delete(ws);
+    if (this.activeTvClient === ws) {
+      this.activeTvClient = null;
+      this.getPrimaryTvClient();
+    }
+  }
+
   private handleConnection(ws: WebSocket, req: IncomingMessage): void {
     const clientWithAlive = ws as WebSocket & { isAlive?: boolean };
     clientWithAlive.isAlive = true;
@@ -338,6 +366,7 @@ export class WsHub {
 
     if (role === 'tv') {
       this.tvClients.add(ws);
+      this.activeTvClient = ws;
       setTimeout(() => this.systemAudio.ensureBookmarksBarHidden(), 250);
       setTimeout(() => this.systemAudio.ensureBookmarksBarHidden(), 1200);
     } else {
@@ -357,18 +386,19 @@ export class WsHub {
     });
 
     ws.on('close', () => {
-      this.tvClients.delete(ws);
-      this.remoteClients.delete(ws);
+      this.removeClient(ws);
       this.broadcastState();
     });
 
     ws.on('error', () => {
-      this.tvClients.delete(ws);
-      this.remoteClients.delete(ws);
+      this.removeClient(ws);
     });
   }
 
-  private handleClientMessage(ws: WebSocket, _role: ClientRole, rawText: string): void {
+  private handleClientMessage(ws: WebSocket, role: ClientRole, rawText: string): void {
+    if (role === 'tv' && ws.readyState === WebSocket.OPEN) {
+      this.activeTvClient = ws;
+    }
     const validation = validateClientMessage(rawText, this.allowedShortcutIds);
 
     if (!validation.ok || !validation.message) {
@@ -781,7 +811,7 @@ export class WsHub {
         }
         void this.desktopLauncher.ensureDesktopApps({
           tvConnectedCount: target === 'antigravity' ? 1 : this.tvClients.size,
-          forceTv: target === 'tv' || target === 'all',
+          forceTv: (target === 'tv' || target === 'all') && this.tvClients.size === 0,
           forceAntigravity:
             target === 'antigravity' || target === 'all'
               ? true
@@ -793,13 +823,21 @@ export class WsHub {
         break;
     }
 
-    // Forward command to all connected TV clients
+    // Forward command to TV clients.
+    // Tab-opening commands MUST go to only the single active TV client so multiple open /tv tabs never open duplicate tabs.
     const tvPayload: ServerBroadcastMessage = {
       type: 'TV_COMMAND',
       command: msg
     };
-    for (const tvClient of this.tvClients) {
-      this.sendToClient(tvClient, tvPayload);
+    if (msg.type === 'OPEN_SHORTCUT' || msg.type === 'OPEN_YOUTUBE_EXTERNAL') {
+      const primaryTv = this.getPrimaryTvClient();
+      if (primaryTv) {
+        this.sendToClient(primaryTv, tvPayload);
+      }
+    } else {
+      for (const tvClient of this.tvClients) {
+        this.sendToClient(tvClient, tvPayload);
+      }
     }
 
     this.broadcastState();

@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const { isDizi, isPending, url, title, hostname, settings } = response;
+  const { isDizi, isPending, watchState, url, title, hostname, settings } = response;
 
   // Test server connectivity
   try {
@@ -67,8 +67,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     statusPill.style.display = 'inline-block';
-    if (isPending) {
-      statusPill.textContent = '⏱ 60 sn sonra otomatik kaydedilecek';
+    if (watchState?.savedCompleted) {
+      statusPill.textContent = '⏭ Bölüm bitti, sonraki bölüm kaydedildi';
+    } else if (watchState?.savedCurrent) {
+      statusPill.textContent = '✓ Kaydedildi';
+    } else if (isPending && watchState) {
+      const label = watchState.isExistingSeries ? 'Takip edilen' : 'Yeni dizi';
+      if (watchState.hasVideo && !watchState.isPlaying) {
+        statusPill.textContent = `⏸ ${label}: Video oynatılması bekleniyor (${watchState.watchedSeconds}/${watchState.requiredSeconds} sn)`;
+      } else {
+        statusPill.textContent = `⏱ ${label}: ${watchState.watchedSeconds}/${watchState.requiredSeconds} sn izlendi`;
+      }
     } else {
       statusPill.textContent = '✓ Takip ediliyor';
     }

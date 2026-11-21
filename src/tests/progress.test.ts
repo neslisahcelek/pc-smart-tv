@@ -386,4 +386,31 @@ describe('HTTP /api/progress API Integration', () => {
     const delData = (await delRes.json()) as { ok: boolean; deleted: boolean };
     expect(delData.deleted).toBe(true);
   });
+
+  it('advances to next episode when completed=true and preserves episode info on overview saves', () => {
+    const first = upsertProgress(
+      {
+        url: 'https://dizigom1.co/seinfeld-3-sezon-3-bolum-hd1/',
+        title: 'Seinfeld 3. Sezon 3. Bölüm',
+        completed: true
+      },
+      tempFilePath
+    );
+    expect(first.season).toBe(3);
+    expect(first.episode).toBe(4);
+    expect(first.episodeLabel).toBe('3. Sezon • 4. Bölüm');
+    expect(first.url).toBe('https://dizigom1.co/seinfeld-3-sezon-4-bolum-hd1/');
+
+    // Saving an overview /dizi/ URL without episode info should not clobber season/episode
+    const afterOverview = upsertProgress(
+      {
+        url: 'https://dizigom1.co/dizi/seinfeld',
+        title: 'Seinfeld'
+      },
+      tempFilePath
+    );
+    expect(afterOverview.season).toBe(3);
+    expect(afterOverview.episode).toBe(4);
+    expect(afterOverview.episodeLabel).toBe('3. Sezon • 4. Bölüm');
+  });
 });

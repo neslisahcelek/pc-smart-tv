@@ -28,6 +28,7 @@ export interface UpsertProgressInput {
   title?: string;
   season?: number;
   episode?: number;
+  completed?: boolean;
   updatedAt?: number;
 }
 
@@ -295,19 +296,47 @@ export function upsertProgress(
     overrideEpisode
   );
 
-  const entry: ProgressEntry = {
+  // Preserve known season/episode if an incoming save lacks episode info for the same or overview URL
+  const shouldPreserveExistingEpisode =
+    existing &&
+    existing.episode !== undefined &&
+    season === undefined &&
+    episode === undefined &&
+    (cleanUrl === existing.url || /\/show\/|\/dizi\/[^/]+\/?$/i.test(cleanUrl));
+
+  let entry: ProgressEntry = {
     key,
     title: seriesTitle,
-    ...(season ? { season } : {}),
-    ...(episode ? { episode } : {}),
-    episodeLabel,
-    url: cleanUrl,
-    host: extractHost(cleanUrl),
+    ...(shouldPreserveExistingEpisode
+      ? {
+          ...(existing.season ? { season: existing.season } : {}),
+          episode: existing.episode,
+          episodeLabel: existing.episodeLabel,
+          url: existing.url
+        }
+      : {
+          ...(season ? { season } : {}),
+          ...(episode ? { episode } : {}),
+          episodeLabel,
+          url: cleanUrl
+        }),
+    host: extractHost(shouldPreserveExistingEpisode ? existing.url : cleanUrl),
     updatedAt:
       typeof input.updatedAt === 'number' && Number.isFinite(input.updatedAt)
         ? input.updatedAt
         : Date.now()
   };
+
+  if (input.completed && entry.episode !== undefined) {
+    const next = buildNextEpisode(entry);
+    entry = {
+      ...entry,
+      ...(next.season ? { season: next.season } : {}),
+      episode: next.episode,
+      episodeLabel: next.episodeLabel,
+      url: next.url
+    };
+  }
 
   const remaining = existingEntries.filter((e) => e.key !== key);
   const updatedList = [entry, ...remaining];
