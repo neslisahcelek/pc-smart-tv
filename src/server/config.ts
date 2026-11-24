@@ -39,6 +39,8 @@ export interface AppConfig {
   lanRemoteUrls: string[];
   launchAntigravity: boolean;
   autoLaunchTv: boolean;
+  vestelTvIp: string | null;
+  vestelKeepAwake: boolean;
 }
 
 export function isPrivateLanIp(ip: string): boolean {
@@ -142,6 +144,13 @@ export function loadConfig(
     env.AUTO_LAUNCH_TV?.toLowerCase() === 'true' ||
     env.AUTO_LAUNCH_TV === '1';
 
+  const rawVestelIp = env.VESTEL_TV_IP?.trim() || '';
+  const vestelTvIp = rawVestelIp && isPrivateLanIp(rawVestelIp) ? rawVestelIp : null;
+
+  const vestelKeepAwake =
+    env.VESTEL_KEEP_AWAKE?.toLowerCase() === 'true' ||
+    env.VESTEL_KEEP_AWAKE === '1';
+
   return {
     port,
     host,
@@ -155,6 +164,8 @@ export function loadConfig(
     lanIps,
     lanRemoteUrls,
     launchAntigravity,
-    autoLaunchTv
+    autoLaunchTv,
+    vestelTvIp,
+    vestelKeepAwake
   };
 }

@@ -19,6 +19,29 @@ const KNOWN_SITE_KEYWORDS = [
   'hbomax'
 ];
 
+const AD_SKIP_SITE_KEYWORDS = [
+  'dizipal',
+  'dizibox',
+  'dizigom',
+  'dizilla',
+  'diziyou',
+  'hdfilmcehennemi',
+  'filmmakinesi',
+  'selcukflix',
+  'yabancidizi'
+];
+
+const OFFICIAL_PLATFORM_HOSTS = [
+  'youtube.com',
+  'netflix.com',
+  'tv.apple.com',
+  'max.com',
+  'hbomax.com',
+  'primevideo.com',
+  'disneyplus.com',
+  'gain.tv'
+];
+
 /**
  * Normalizes title & URL to a common series key (matching server extractSeriesKey logic)
  */
@@ -267,6 +290,51 @@ function isEpisodeUrl(url, title = '', customSites = []) {
   return /\/bolum\/|\/episode\/|\/video\/watch\//i.test(url);
 }
 
+function extractRootDomain(hostname = '') {
+  const clean = String(hostname || '').toLowerCase().replace(/^www\./, '');
+  const parts = clean.split('.').filter(Boolean);
+  if (parts.length <= 2) return clean;
+  return parts.slice(-2).join('.');
+}
+
+function isAdSkipSite(url, customSites = []) {
+  if (!url || (!url.startsWith('https://') && !url.startsWith('http://'))) {
+    return false;
+  }
+
+  let hostname = '';
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.')
+  ) {
+    return false;
+  }
+
+  const isOfficial = OFFICIAL_PLATFORM_HOSTS.some(
+    (host) => hostname === host || hostname.endsWith('.' + host)
+  );
+  if (isOfficial) {
+    return false;
+  }
+
+  if (AD_SKIP_SITE_KEYWORDS.some((kw) => hostname.includes(kw))) {
+    return true;
+  }
+
+  return customSites.some((site) => {
+    const cleanSite = String(site || '').trim().toLowerCase();
+    return cleanSite && (hostname === cleanSite || hostname.endsWith('.' + cleanSite));
+  });
+}
+
 async function getSettings() {
   const defaults = {
     serverUrl: 'http://localhost:3000',
@@ -274,10 +342,59 @@ async function getSettings() {
     delaySeconds: 60,
     newSeriesDelaySeconds: 300,
     customSites: [],
-    autoSyncBookmarks: true
+    autoSyncBookmarks: true,
+    autoSkipAds: true,
+    muteAndSpeedUpAds: true,
+    closeAdPopups: true
   };
   const stored = await chrome.storage.local.get(defaults);
   return { ...defaults, ...stored };
+}
+
+async function incrementAdSkipCounter(tabId) {
+  const { adsSkippedTotal = 0 } = await chrome.storage.local.get({ adsSkippedTotal: 0 });
+  const nextTotal = Number(adsSkippedTotal) + 1;
+  await chrome.storage.local.set({ adsSkippedTotal: nextTotal });
+
+  let nextTabCount = 0;
+  if (tabId) {
+    const tabKey = `adSkipTab_${tabId}`;
+    const sessionData = await chrome.storage.session.get(tabKey);
+    nextTabCount = (Number(sessionData[tabKey]) || 0) + 1;
+    await chrome.storage.session.set({ [tabKey]: nextTabCount });
+  }
+
+  return { tabCount: nextTabCount, totalCount: nextTotal };
+}
+
+async function tryCloseAdPopupTab(tabId, candidateUrl, openerTabId, openerRootDomain) {
+  if (!tabId || !candidateUrl) return false;
+  if (!candidateUrl.startsWith('http://') && !candidateUrl.startsWith('https://')) {
+    return false;
+  }
+
+  let popupRootDomain = '';
+  try {
+    popupRootDomain = extractRootDomain(new URL(candidateUrl).hostname);
+  } catch {
+    return false;
+  }
+
+  // Never close navigation within the same series site
+  if (openerRootDomain && popupRootDomain === openerRootDomain) {
+    return false;
+  }
+
+  try {
+    await chrome.tabs.remove(tabId);
+    if (openerTabId) {
+      await chrome.tabs.update(openerTabId, { active: true }).catch(() => {});
+    }
+    await incrementAdSkipCounter(openerTabId);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -519,6 +636,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       delaySeconds: 60,
       newSeriesDelaySeconds: 300,
       autoSyncBookmarks: true,
+      autoSkipAds: true,
+      muteAndSpeedUpAds: true,
+      closeAdPopups: true,
+      adsSkippedTotal: 0,
       customSites: []
     });
   }
@@ -623,7 +744,11 @@ async function handlePlaybackHeartbeat(tabId, msg) {
     state.hasIframe = true;
   }
 
-  if (msg.hasVideo) {
+  const reportedDuration = Number(msg.duration) || 0;
+  const reportedCurrentTime = Number(msg.currentTime) || 0;
+  const isValidEpisodeVideo = Boolean(msg.hasVideo) && !(reportedDuration > 0 && reportedDuration < 180);
+
+  if (isValidEpisodeVideo) {
     state.hasVideo = true;
     state.isPlaying = Boolean(msg.isPlaying);
     const reportedWatched = Number(msg.watchedSeconds) || 0;
@@ -667,11 +792,17 @@ async function handlePlaybackHeartbeat(tabId, msg) {
     await executeSave(tabId, state.url, state.title, { completed: false });
   }
 
-  // 2. If episode finished (ended or near end) and user actually watched it, save next episode (+1)
+  // 2. If episode finished (ended or near end) on a real >=5min episode video that was actually watched, save next episode (+1)
+  const isCompletedLongEpisode =
+    isValidEpisodeVideo &&
+    reportedDuration >= 300 &&
+    reportedCurrentTime >= reportedDuration * 0.88 &&
+    (Boolean(msg.ended) || Boolean(msg.isNearEnd));
+
   if (
-    (msg.ended || msg.isNearEnd) &&
+    isCompletedLongEpisode &&
     !state.savedCompleted &&
-    (state.savedCurrent || effectiveSeconds >= 30)
+    state.videoWatchedSeconds >= 60
   ) {
     state.savedCompleted = true;
     state.savedCurrent = true;
@@ -683,17 +814,73 @@ async function handlePlaybackHeartbeat(tabId, msg) {
   await chrome.storage.session.set({ [sessionKey]: state });
 }
 
+// Watch newly opened tabs for popunders triggered right when auto-skip clicks a skip button
+chrome.tabs.onCreated.addListener(async (tab) => {
+  if (!tab?.id || !tab.openerTabId) return;
+
+  const armedKey = `adSkipArmed_${tab.openerTabId}`;
+  const sessionData = await chrome.storage.session.get(armedKey);
+  const armed = sessionData[armedKey];
+  if (!armed || Date.now() - armed.armedAt > 2500) {
+    return;
+  }
+
+  const settings = await getSettings();
+  if (!settings.autoSkipAds || !settings.closeAdPopups) {
+    return;
+  }
+
+  const candidateUrl = tab.pendingUrl || tab.url || '';
+  if (!candidateUrl || candidateUrl === 'about:blank') {
+    await chrome.storage.session.set({
+      [`pendingPopupTab_${tab.id}`]: {
+        openerTabId: tab.openerTabId,
+        openerRootDomain: armed.openerRootDomain || '',
+        createdAt: Date.now()
+      }
+    });
+    return;
+  }
+
+  await tryCloseAdPopupTab(tab.id, candidateUrl, tab.openerTabId, armed.openerRootDomain || '');
+});
+
 // Watch tab navigations and title changes
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  const currentUrl = tab.url || changeInfo.url;
+  const currentUrl = changeInfo.url || tab.url;
   if (!currentUrl) return;
+
+  // Check if this tab was flagged as a blank popunder waiting for redirect URL
+  if (changeInfo.url) {
+    const popupKey = `pendingPopupTab_${tabId}`;
+    const popupData = await chrome.storage.session.get(popupKey);
+    const pendingPopup = popupData[popupKey];
+    if (pendingPopup) {
+      await chrome.storage.session.remove(popupKey);
+      if (Date.now() - pendingPopup.createdAt <= 3500) {
+        const closed = await tryCloseAdPopupTab(
+          tabId,
+          changeInfo.url,
+          pendingPopup.openerTabId,
+          pendingPopup.openerRootDomain
+        );
+        if (closed) return;
+      }
+    }
+  }
+
   await handleTabEpisodeChange(tabId, currentUrl, tab.title || '');
 });
 
-// Watch tab closures to clean up alarms
+// Watch tab closures to clean up alarms and session state
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.alarms.clear(`watch-fallback-${tabId}`);
-  chrome.storage.session.remove(`tab_${tabId}`);
+  chrome.storage.session.remove([
+    `tab_${tabId}`,
+    `adSkipArmed_${tabId}`,
+    `adSkipTab_${tabId}`,
+    `pendingPopupTab_${tabId}`
+  ]);
 });
 
 // Handle alarms (fallback active-watch tracker when content.js is not injected on a mirror/custom domain)
@@ -780,6 +967,55 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
 
+      case 'GET_AD_SKIPPER_CONFIG': {
+        const tabUrl = sender.tab?.url || '';
+        const settings = await getSettings();
+        const siteSupported = isAdSkipSite(tabUrl, settings.customSites);
+        sendResponse({
+          ok: true,
+          siteSupported,
+          enabled: siteSupported && settings.autoSkipAds !== false,
+          muteAndSpeedUpAds: settings.muteAndSpeedUpAds !== false,
+          closeAdPopups: settings.closeAdPopups !== false
+        });
+        break;
+      }
+
+      case 'AD_SKIP_ARMED': {
+        const tabId = sender.tab?.id;
+        const tabUrl = sender.tab?.url || '';
+        if (tabId) {
+          let openerRootDomain = '';
+          try {
+            openerRootDomain = extractRootDomain(new URL(tabUrl).hostname);
+          } catch {
+            openerRootDomain = '';
+          }
+          await chrome.storage.session.set({
+            [`adSkipArmed_${tabId}`]: {
+              armedAt: Date.now(),
+              openerRootDomain
+            }
+          });
+        }
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case 'AD_SKIPPED': {
+        const tabId = sender.tab?.id;
+        const counts = await incrementAdSkipCounter(tabId);
+        sendResponse({ ok: true, ...counts });
+        break;
+      }
+
+      case 'SET_AD_SKIP_ENABLED': {
+        const enabled = Boolean(msg.enabled);
+        await chrome.storage.local.set({ autoSkipAds: enabled });
+        sendResponse({ ok: true, autoSkipAds: enabled });
+        break;
+      }
+
       case 'GET_STATUS': {
         const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!activeTab || !activeTab.id) {
@@ -788,12 +1024,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         const settings = await getSettings();
-        const sessionData = await chrome.storage.session.get(`tab_${activeTab.id}`);
+        const sessionData = await chrome.storage.session.get([
+          `tab_${activeTab.id}`,
+          `adSkipTab_${activeTab.id}`
+        ]);
         const pending = sessionData[`tab_${activeTab.id}`];
+        const tabAdsSkipped = Number(sessionData[`adSkipTab_${activeTab.id}`]) || 0;
+        const { adsSkippedTotal = 0 } = await chrome.storage.local.get({ adsSkippedTotal: 0 });
         const effectiveTitle = pending?.title || activeTab.title || '';
         const isDizi =
           Boolean(pending) ||
           isEpisodeUrl(activeTab.url || '', effectiveTitle, settings.customSites);
+        const adSkipSite = isAdSkipSite(activeTab.url || '', settings.customSites);
 
         let hostname = '';
         try {
@@ -819,6 +1061,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           title: effectiveTitle,
           hostname,
           isDizi,
+          isAdSkipSite: adSkipSite,
+          tabAdsSkipped,
+          adsSkippedTotal: Number(adsSkippedTotal) || 0,
           isPending: Boolean(pending && !pending.savedCurrent),
           watchState: pending
             ? {

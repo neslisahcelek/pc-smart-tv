@@ -7,13 +7,58 @@ import type {
   ShortcutCategory,
   TVActiveView,
   TVSectionId,
-  ValidatedClientMessage
+  ValidatedClientMessage,
+  VestelKeyName,
+  VestelProtocolVariant
 } from './types.js';
 import { isSafeHttpsUrl } from './shortcuts.js';
 
 const YOUTUBE_VIDEO_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
 const SHORTCUT_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/;
+const CHANNEL_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/;
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{3,8}$/;
+const LOCAL_HOST_INPUT_REGEX = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[a-zA-Z0-9-]{1,63}\.local)$/;
+
+const ALLOWED_VESTEL_KEYS = new Set<VestelKeyName>([
+  'POWER',
+  'OK',
+  'UP',
+  'DOWN',
+  'LEFT',
+  'RIGHT',
+  'BACK',
+  'EXIT',
+  'MENU',
+  'INFO',
+  'SOURCE',
+  'TV_DTV',
+  'CH_UP',
+  'CH_DOWN',
+  'VOL_UP',
+  'VOL_DOWN',
+  'MUTE',
+  'NUM_0',
+  'NUM_1',
+  'NUM_2',
+  'NUM_3',
+  'NUM_4',
+  'NUM_5',
+  'NUM_6',
+  'NUM_7',
+  'NUM_8',
+  'NUM_9',
+  'RED',
+  'GREEN',
+  'YELLOW',
+  'BLUE'
+]);
+
+const ALLOWED_VESTEL_PROTOCOLS = new Set<VestelProtocolVariant>([
+  'auto',
+  'vr_remote',
+  'smartcenter',
+  'raw_tcp'
+]);
 
 const ALLOWED_CATEGORIES = new Set<ShortcutCategory>(['platform', 'dizi_site', 'bookmark']);
 const ALLOWED_SECTION_IDS = new Set<TVSectionId>([
@@ -810,6 +855,174 @@ export function validateClientMessage(
         message: {
           type: 'TYPE_TEXT',
           text
+        }
+      };
+    }
+
+    case 'TV_REMOTE_KEY': {
+      const key = obj.key;
+      if (typeof key !== 'string' || !ALLOWED_VESTEL_KEYS.has(key as VestelKeyName)) {
+        return { ok: false, error: `Unsupported Vestel TV key: ${String(key)}` };
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TV_REMOTE_KEY',
+          key: key as VestelKeyName
+        }
+      };
+    }
+
+    case 'TV_DISMISS_SLEEP_PROMPT': {
+      const strategy = obj.strategy;
+      if (strategy !== undefined && strategy !== 'exit' && strategy !== 'right_ok') {
+        return { ok: false, error: 'Invalid TV_DISMISS_SLEEP_PROMPT strategy.' };
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TV_DISMISS_SLEEP_PROMPT',
+          ...(strategy ? { strategy } : {})
+        }
+      };
+    }
+
+    case 'TV_TUNE_CHANNEL': {
+      const channelNumber = obj.channelNumber;
+      if (
+        typeof channelNumber !== 'number' ||
+        !Number.isInteger(channelNumber) ||
+        channelNumber < 1 ||
+        channelNumber > 9999
+      ) {
+        return { ok: false, error: 'Channel number must be an integer between 1 and 9999.' };
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TV_TUNE_CHANNEL',
+          channelNumber
+        }
+      };
+    }
+
+    case 'TV_DISCOVER': {
+      return {
+        ok: true,
+        message: {
+          type: 'TV_DISCOVER'
+        }
+      };
+    }
+
+    case 'TV_SET_CONFIG': {
+      const result: Extract<ValidatedClientMessage, { type: 'TV_SET_CONFIG' }> = {
+        type: 'TV_SET_CONFIG'
+      };
+
+      if (obj.host !== undefined) {
+        if (obj.host === null || obj.host === '') {
+          result.host = null;
+        } else if (typeof obj.host === 'string') {
+          const cleanHost = obj.host.trim();
+          if (!LOCAL_HOST_INPUT_REGEX.test(cleanHost)) {
+            return { ok: false, error: 'Invalid TV host format. Expected local IPv4 or .local hostname.' };
+          }
+          result.host = cleanHost;
+        } else {
+          return { ok: false, error: 'TV host must be a string or null.' };
+        }
+      }
+
+      if (obj.protocolVariant !== undefined) {
+        if (
+          typeof obj.protocolVariant !== 'string' ||
+          !ALLOWED_VESTEL_PROTOCOLS.has(obj.protocolVariant as VestelProtocolVariant)
+        ) {
+          return { ok: false, error: 'Invalid Vestel protocolVariant.' };
+        }
+        result.protocolVariant = obj.protocolVariant as VestelProtocolVariant;
+      }
+
+      if (obj.keepAwakeEnabled !== undefined) {
+        if (typeof obj.keepAwakeEnabled !== 'boolean') {
+          return { ok: false, error: 'keepAwakeEnabled must be a boolean.' };
+        }
+        result.keepAwakeEnabled = obj.keepAwakeEnabled;
+      }
+
+      if (obj.keepAwakeIntervalMinutes !== undefined) {
+        if (
+          typeof obj.keepAwakeIntervalMinutes !== 'number' ||
+          !Number.isFinite(obj.keepAwakeIntervalMinutes)
+        ) {
+          return { ok: false, error: 'keepAwakeIntervalMinutes must be a finite number.' };
+        }
+        result.keepAwakeIntervalMinutes = clampInteger(obj.keepAwakeIntervalMinutes, 5, 180);
+      }
+
+      return {
+        ok: true,
+        message: result
+      };
+    }
+
+    case 'TV_SAVE_FAVORITE_CHANNEL': {
+      const name = sanitizeText(obj.name, 40);
+      if (!name) {
+        return { ok: false, error: 'Favorite channel name cannot be empty.' };
+      }
+      const channelNumber = obj.channelNumber;
+      if (
+        typeof channelNumber !== 'number' ||
+        !Number.isInteger(channelNumber) ||
+        channelNumber < 1 ||
+        channelNumber > 9999
+      ) {
+        return { ok: false, error: 'Channel number must be an integer between 1 and 9999.' };
+      }
+      let id: string | undefined;
+      if (obj.id !== undefined) {
+        if (typeof obj.id !== 'string' || !CHANNEL_ID_REGEX.test(obj.id.trim())) {
+          return { ok: false, error: 'Invalid favorite channel id format.' };
+        }
+        id = obj.id.trim();
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TV_SAVE_FAVORITE_CHANNEL',
+          ...(id ? { id } : {}),
+          name,
+          channelNumber
+        }
+      };
+    }
+
+    case 'TV_DELETE_FAVORITE_CHANNEL': {
+      const id = typeof obj.id === 'string' ? obj.id.trim() : '';
+      if (!CHANNEL_ID_REGEX.test(id)) {
+        return { ok: false, error: 'Invalid favorite channel id.' };
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TV_DELETE_FAVORITE_CHANNEL',
+          id
+        }
+      };
+    }
+
+    case 'TV_SET_VOLUME': {
+      const volume = obj.volume;
+      if (typeof volume !== 'number' || !Number.isFinite(volume)) {
+        return { ok: false, error: 'TV volume must be a finite number.' };
+      }
+      return {
+        ok: true,
+        message: {
+          type: 'TV_SET_VOLUME',
+          volume: clampInteger(volume, 0, 100)
         }
       };
     }

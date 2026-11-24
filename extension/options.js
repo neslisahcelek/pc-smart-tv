@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const delaySecondsInput = document.getElementById('delaySeconds');
   const newSeriesDelaySecondsInput = document.getElementById('newSeriesDelaySeconds');
   const autoSyncBookmarksInput = document.getElementById('autoSyncBookmarks');
+  const autoSkipAdsInput = document.getElementById('autoSkipAds');
+  const muteAndSpeedUpAdsInput = document.getElementById('muteAndSpeedUpAds');
+  const closeAdPopupsInput = document.getElementById('closeAdPopups');
   const newSiteInput = document.getElementById('newSiteInput');
   const btnAddSite = document.getElementById('btnAddSite');
   const siteTags = document.getElementById('siteTags');
@@ -57,6 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     delaySeconds: 60,
     newSeriesDelaySeconds: 300,
     autoSyncBookmarks: true,
+    autoSkipAds: true,
+    muteAndSpeedUpAds: true,
+    closeAdPopups: true,
     customSites: []
   };
   const stored = await chrome.storage.local.get(defaults);
@@ -66,6 +72,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   delaySecondsInput.value = stored.delaySeconds || 60;
   newSeriesDelaySecondsInput.value = stored.newSeriesDelaySeconds || 300;
   autoSyncBookmarksInput.checked = stored.autoSyncBookmarks !== false;
+  autoSkipAdsInput.checked = stored.autoSkipAds !== false;
+  muteAndSpeedUpAdsInput.checked = stored.muteAndSpeedUpAds !== false;
+  closeAdPopupsInput.checked = stored.closeAdPopups !== false;
   currentCustomSites = Array.isArray(stored.customSites) ? stored.customSites : [];
   renderTags();
 
@@ -117,6 +126,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       delaySeconds: Number(delaySecondsInput.value) || 60,
       newSeriesDelaySeconds: Number(newSeriesDelaySecondsInput.value) || 300,
       autoSyncBookmarks: autoSyncBookmarksInput.checked,
+      autoSkipAds: autoSkipAdsInput.checked,
+      muteAndSpeedUpAds: muteAndSpeedUpAdsInput.checked,
+      closeAdPopups: closeAdPopupsInput.checked,
       customSites: currentCustomSites
     };
 

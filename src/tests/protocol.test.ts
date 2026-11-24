@@ -406,4 +406,75 @@ describe('Protocol & Security Boundary Validation', () => {
     expect(isPrivateLanIp('172.32.0.1')).toBe(false);
     expect(isPrivateLanIp('evil.com')).toBe(false);
   });
+
+  it('validates Vestel TV hardware remote messages strictly', () => {
+    expect(validateClientMessage({ type: 'TV_REMOTE_KEY', key: 'OK' }).ok).toBe(true);
+    expect(validateClientMessage({ type: 'TV_REMOTE_KEY', key: 'CH_UP' }).ok).toBe(true);
+    expect(validateClientMessage({ type: 'TV_REMOTE_KEY', key: 'INVALID_KEY' }).ok).toBe(false);
+
+    expect(validateClientMessage({ type: 'TV_DISMISS_SLEEP_PROMPT' }).ok).toBe(true);
+    expect(
+      validateClientMessage({ type: 'TV_DISMISS_SLEEP_PROMPT', strategy: 'right_ok' }).ok
+    ).toBe(true);
+    expect(
+      validateClientMessage({ type: 'TV_DISMISS_SLEEP_PROMPT', strategy: 'hack' }).ok
+    ).toBe(false);
+
+    expect(validateClientMessage({ type: 'TV_TUNE_CHANNEL', channelNumber: 24 }).ok).toBe(true);
+    expect(validateClientMessage({ type: 'TV_TUNE_CHANNEL', channelNumber: 0 }).ok).toBe(false);
+    expect(validateClientMessage({ type: 'TV_TUNE_CHANNEL', channelNumber: 12.5 }).ok).toBe(false);
+
+    expect(validateClientMessage({ type: 'TV_DISCOVER' }).ok).toBe(true);
+
+    const validCfg = validateClientMessage({
+      type: 'TV_SET_CONFIG',
+      host: '192.168.1.42',
+      protocolVariant: 'smartcenter',
+      keepAwakeEnabled: true,
+      keepAwakeIntervalMinutes: 999
+    });
+    expect(validCfg.ok).toBe(true);
+    expect(validCfg.message).toEqual({
+      type: 'TV_SET_CONFIG',
+      host: '192.168.1.42',
+      protocolVariant: 'smartcenter',
+      keepAwakeEnabled: true,
+      keepAwakeIntervalMinutes: 180
+    });
+
+    expect(
+      validateClientMessage({ type: 'TV_SET_CONFIG', host: 'http://192.168.1.42' }).ok
+    ).toBe(false);
+
+    expect(
+      validateClientMessage({
+        type: 'TV_SAVE_FAVORITE_CHANNEL',
+        name: 'TRT 1',
+        channelNumber: 1
+      }).ok
+    ).toBe(true);
+    expect(
+      validateClientMessage({
+        type: 'TV_SAVE_FAVORITE_CHANNEL',
+        name: '   ',
+        channelNumber: 1
+      }).ok
+    ).toBe(false);
+    expect(
+      validateClientMessage({
+        type: 'TV_DELETE_FAVORITE_CHANNEL',
+        id: 'trt_1'
+      }).ok
+    ).toBe(true);
+
+    const tvVolHigh = validateClientMessage({ type: 'TV_SET_VOLUME', volume: 150 });
+    expect(tvVolHigh.ok).toBe(true);
+    expect(tvVolHigh.message).toEqual({ type: 'TV_SET_VOLUME', volume: 100 });
+
+    const tvVolLow = validateClientMessage({ type: 'TV_SET_VOLUME', volume: -10 });
+    expect(tvVolLow.ok).toBe(true);
+    expect(tvVolLow.message).toEqual({ type: 'TV_SET_VOLUME', volume: 0 });
+
+    expect(validateClientMessage({ type: 'TV_SET_VOLUME', volume: 'high' }).ok).toBe(false);
+  });
 });

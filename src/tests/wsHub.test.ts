@@ -458,4 +458,82 @@ describe('Remote-to-TV WebSocket Vertical Slice & Integration', () => {
     tv2.close();
     remote.close();
   });
+
+  it('routes Vestel TV hardware commands via WsHub and syncs state without leaking to /tv browser tabs', async () => {
+    server = await createServer(
+      {
+        port: 0,
+        host: '127.0.0.1',
+        allowLan: false,
+        youtubeApiKey: null
+      },
+      { isProduction: true }
+    );
+
+    const tv = new WebSocket(`ws://127.0.0.1:${server.port}/ws?role=tv`);
+    const remote = new WebSocket(`ws://127.0.0.1:${server.port}/ws?role=remote`);
+    await Promise.all([
+      waitForMessage(tv, (m) => m.type === 'STATE_SYNC'),
+      waitForMessage(remote, (m) => m.type === 'STATE_SYNC')
+    ]);
+
+    let tvForwardedHardwareCmd = 0;
+    tv.on('message', (raw) => {
+      const m = JSON.parse(raw.toString()) as ServerBroadcastMessage;
+      if (m.type === 'TV_COMMAND' && m.command.type.startsWith('TV_')) {
+        tvForwardedHardwareCmd++;
+      }
+    });
+
+    const favSyncPromise = waitForMessage(
+      remote,
+      (m) =>
+        m.type === 'STATE_SYNC' &&
+        Boolean(
+          m.state.vestelTv?.favoriteChannels.some(
+            (c) => c.name === 'TRT 1' && c.channelNumber === 1
+          )
+        )
+    );
+    remote.send(
+      JSON.stringify({
+        type: 'TV_SAVE_FAVORITE_CHANNEL',
+        id: 'trt1',
+        name: 'TRT 1',
+        channelNumber: 1
+      })
+    );
+    const favSync = await favSyncPromise;
+    expect(favSync.type).toBe('STATE_SYNC');
+
+    const cfgSyncPromise = waitForMessage(
+      remote,
+      (m) =>
+        m.type === 'STATE_SYNC' &&
+        m.state.vestelTv?.configuredHost === '192.168.1.99' &&
+        m.state.vestelTv?.keepAwakeEnabled === true
+    );
+    remote.send(
+      JSON.stringify({
+        type: 'TV_SET_CONFIG',
+        host: '192.168.1.99',
+        keepAwakeEnabled: true,
+        keepAwakeIntervalMinutes: 30
+      })
+    );
+    await cfgSyncPromise;
+
+    const volSyncPromise = waitForMessage(
+      remote,
+      (m) => m.type === 'STATE_SYNC' && m.state.vestelTv?.volume === 42
+    );
+    remote.send(JSON.stringify({ type: 'TV_SET_VOLUME', volume: 42 }));
+    await volSyncPromise;
+
+    await new Promise((r) => setTimeout(r, 40));
+    expect(tvForwardedHardwareCmd).toBe(0);
+
+    tv.close();
+    remote.close();
+  });
 });

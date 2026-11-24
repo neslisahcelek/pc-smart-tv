@@ -70,7 +70,9 @@ export async function createServer(
     progressFilePath: config.progressFilePath,
     port: config.port,
     launchAntigravity: config.launchAntigravity,
-    autoLaunchTv: config.autoLaunchTv
+    autoLaunchTv: config.autoLaunchTv,
+    vestelTvIp: config.vestelTvIp,
+    vestelKeepAwake: config.vestelKeepAwake
   });
 
   function extractRawShareCandidate(req: express.Request): string {

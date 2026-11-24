@@ -17,6 +17,7 @@ import { resolveShortcutIconUrl } from '../shared/platformIcons.js';
 import { isPrivateLanIp } from './config.js';
 import { SystemAudioController } from './systemAudio.js';
 import { DesktopLauncher, type LaunchResult } from './desktopLauncher.js';
+import { VestelTvController } from './vestelTv.js';
 import {
   advanceProgressEpisode,
   deleteProgress,
@@ -155,6 +156,22 @@ function describeCommandInTurkish(
     }
     case 'TYPE_TEXT':
       return `Metin Yazma: "${msg.text.length > 20 ? msg.text.slice(0, 20) + '...' : msg.text}"`;
+    case 'TV_REMOTE_KEY':
+      return `Vestel TV Tuşu: ${msg.key}`;
+    case 'TV_DISMISS_SLEEP_PROMPT':
+      return 'Vestel TV Uyarı Kapatma (Hayır)';
+    case 'TV_TUNE_CHANNEL':
+      return `Vestel TV Kanal: ${msg.channelNumber}`;
+    case 'TV_DISCOVER':
+      return 'Ağda Vestel TV Aranıyor';
+    case 'TV_SET_CONFIG':
+      return 'Vestel TV Ayarları Güncellendi';
+    case 'TV_SAVE_FAVORITE_CHANNEL':
+      return `Favori Kanal Kaydedildi: ${msg.channelNumber} - ${msg.name}`;
+    case 'TV_DELETE_FAVORITE_CHANNEL':
+      return 'Favori Kanal Silindi';
+    case 'TV_SET_VOLUME':
+      return `Vestel TV Ses: %${msg.volume}`;
     default:
       return msg.type;
   }
@@ -176,6 +193,7 @@ export class WsHub {
   private readonly systemAudio: SystemAudioController;
   private lastWakeDisplayAt = 0;
   private readonly desktopLauncher: DesktopLauncher;
+  private readonly vestelTv: VestelTvController;
   private readonly launchAntigravity: boolean;
   private readonly autoLaunchTv: boolean;
   private state: TVState;
@@ -191,6 +209,9 @@ export class WsHub {
       progressFilePath?: string;
       systemAudio?: SystemAudioController;
       desktopLauncher?: DesktopLauncher;
+      vestelTv?: VestelTvController;
+      vestelTvIp?: string | null;
+      vestelKeepAwake?: boolean;
       port?: number;
       launchAntigravity?: boolean;
       autoLaunchTv?: boolean;
@@ -259,6 +280,18 @@ export class WsHub {
           this.broadcastState();
         }
       });
+
+    this.vestelTv =
+      options.vestelTv ??
+      new VestelTvController({
+        initialHost: options.vestelTvIp,
+        initialKeepAwake: options.vestelKeepAwake,
+        onStateChange: (tvStatus) => {
+          this.state.vestelTv = tvStatus;
+          this.broadcastState();
+        }
+      });
+    this.state.vestelTv = this.vestelTv.getStatus();
 
     this.wss = new WebSocketServer({
       server,
@@ -371,6 +404,9 @@ export class WsHub {
       setTimeout(() => this.systemAudio.ensureBookmarksBarHidden(), 1200);
     } else {
       this.remoteClients.add(ws);
+      if (process.env.VITEST !== 'true' && this.vestelTv.getStatus().activeHost) {
+        void this.vestelTv.syncVolume();
+      }
       if (this.autoLaunchTv && this.tvClients.size === 0) {
         void this.desktopLauncher.ensureDesktopApps({
           tvConnectedCount: 0
@@ -821,22 +857,92 @@ export class WsHub {
       }
       case 'NAVIGATE':
         break;
+
+      case 'TV_REMOTE_KEY': {
+        void this.vestelTv.sendKey(msg.key);
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_DISMISS_SLEEP_PROMPT': {
+        void this.vestelTv.dismissSleepPrompt(msg.strategy ?? 'exit');
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_TUNE_CHANNEL': {
+        void this.vestelTv.tuneChannel(msg.channelNumber);
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_DISCOVER': {
+        void this.vestelTv.discover();
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_SET_CONFIG': {
+        this.vestelTv.setConfig({
+          host: msg.host,
+          protocolVariant: msg.protocolVariant,
+          keepAwakeEnabled: msg.keepAwakeEnabled,
+          keepAwakeIntervalMinutes: msg.keepAwakeIntervalMinutes
+        });
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_SAVE_FAVORITE_CHANNEL': {
+        this.vestelTv.saveFavoriteChannel({
+          id: msg.id,
+          name: msg.name,
+          channelNumber: msg.channelNumber
+        });
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_DELETE_FAVORITE_CHANNEL': {
+        this.vestelTv.deleteFavoriteChannel(msg.id);
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
+
+      case 'TV_SET_VOLUME': {
+        void this.vestelTv.setVolume(msg.volume);
+        this.state.vestelTv = this.vestelTv.getStatus();
+        break;
+      }
     }
 
-    // Forward command to TV clients.
-    // Tab-opening commands MUST go to only the single active TV client so multiple open /tv tabs never open duplicate tabs.
-    const tvPayload: ServerBroadcastMessage = {
-      type: 'TV_COMMAND',
-      command: msg
-    };
-    if (msg.type === 'OPEN_SHORTCUT' || msg.type === 'OPEN_YOUTUBE_EXTERNAL') {
-      const primaryTv = this.getPrimaryTvClient();
-      if (primaryTv) {
-        this.sendToClient(primaryTv, tvPayload);
-      }
-    } else {
-      for (const tvClient of this.tvClients) {
-        this.sendToClient(tvClient, tvPayload);
+    // Forward browser-oriented commands to TV clients.
+    // Hardware TV commands go directly from server -> Vestel TV over LAN, so skip forwarding them to /tv browser tabs.
+    const isHardwareTvCommand =
+      msg.type === 'TV_REMOTE_KEY' ||
+      msg.type === 'TV_DISMISS_SLEEP_PROMPT' ||
+      msg.type === 'TV_TUNE_CHANNEL' ||
+      msg.type === 'TV_DISCOVER' ||
+      msg.type === 'TV_SET_CONFIG' ||
+      msg.type === 'TV_SAVE_FAVORITE_CHANNEL' ||
+      msg.type === 'TV_DELETE_FAVORITE_CHANNEL' ||
+      msg.type === 'TV_SET_VOLUME';
+
+    if (!isHardwareTvCommand) {
+      // Tab-opening commands MUST go to only the single active TV client so multiple open /tv tabs never open duplicate tabs.
+      const tvPayload: ServerBroadcastMessage = {
+        type: 'TV_COMMAND',
+        command: msg
+      };
+      if (msg.type === 'OPEN_SHORTCUT' || msg.type === 'OPEN_YOUTUBE_EXTERNAL') {
+        const primaryTv = this.getPrimaryTvClient();
+        if (primaryTv) {
+          this.sendToClient(primaryTv, tvPayload);
+        }
+      } else {
+        for (const tvClient of this.tvClients) {
+          this.sendToClient(tvClient, tvPayload);
+        }
       }
     }
 
@@ -1155,6 +1261,7 @@ export class WsHub {
   public close(): Promise<void> {
     clearInterval(this.heartbeatInterval);
     this.systemAudio.close();
+    this.vestelTv.close();
     return new Promise((resolve) => {
       this.wss.close(() => resolve());
     });

@@ -4,6 +4,55 @@
  */
 
 (() => {
+  const MIN_REAL_VIDEO_DURATION_SEC = 180;
+  const MIN_EPISODE_DURATION_SEC = 300;
+
+  function isShortAdOrPreviewVideo(video) {
+    if (!video) return false;
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    return duration > 0 && duration < MIN_REAL_VIDEO_DURATION_SEC;
+  }
+
+  function getVideoMetrics(video) {
+    if (!video || video.isConnected === false || isShortAdOrPreviewVideo(video)) {
+      return {
+        hasVideo: false,
+        isPlaying: false,
+        currentTime: 0,
+        duration: 0,
+        isNearEnd: false,
+        ended: false
+      };
+    }
+
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+    const isPlaying = !video.paused && !video.ended && video.readyState >= 2;
+    const isLongEpisode = duration >= MIN_EPISODE_DURATION_SEC;
+    const ended = Boolean(video.ended) && isLongEpisode && currentTime >= duration - 15;
+    const isNearEnd =
+      isLongEpisode &&
+      (currentTime / duration >= 0.93 || duration - currentTime <= 90);
+
+    return {
+      hasVideo: true,
+      isPlaying,
+      currentTime,
+      duration,
+      isNearEnd,
+      ended
+    };
+  }
+
+  globalThis.__TV_CONTROLLER_CONTENT_HELPERS__ = {
+    isShortAdOrPreviewVideo,
+    getVideoMetrics
+  };
+
+  if (typeof window === 'undefined' || typeof document === 'undefined' || typeof chrome === 'undefined') {
+    return;
+  }
+
   const isTopFrame = window === window.top;
   let lastUrl = window.location.href;
   let lastTitle = document.title;
@@ -39,6 +88,7 @@
       lastUrl = currentUrl;
       lastTitle = currentTitle;
       // Reset per-navigation video tracking in top frame
+      activeVideo = null;
       watchedSeconds = 0;
       lastVideoTime = 0;
       nearEndReported = false;
@@ -53,34 +103,23 @@
     }
   }
 
-  function getVideoMetrics(video) {
-    if (!video) {
-      return {
-        hasVideo: false,
-        isPlaying: false,
-        currentTime: 0,
-        duration: 0,
-        isNearEnd: false,
-        ended: false
-      };
+  function pickActiveEpisodeVideo() {
+    if (activeVideo && (!activeVideo.isConnected || isShortAdOrPreviewVideo(activeVideo))) {
+      activeVideo = null;
     }
+    if (activeVideo) return activeVideo;
 
-    const duration = Number.isFinite(video.duration) ? video.duration : 0;
-    const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-    const isPlaying = !video.paused && !video.ended && video.readyState >= 2;
-    const ended = Boolean(video.ended);
-    const isNearEnd =
-      duration >= 180 &&
-      (currentTime / duration >= 0.92 || duration - currentTime <= 90);
+    const videos = Array.from(document.querySelectorAll('video')).filter(
+      (v) => v && v.isConnected && !isShortAdOrPreviewVideo(v)
+    );
+    if (videos.length === 0) return null;
 
-    return {
-      hasVideo: true,
-      isPlaying,
-      currentTime,
-      duration,
-      isNearEnd,
-      ended
-    };
+    videos.sort((a, b) => {
+      const durA = Number.isFinite(a.duration) ? a.duration : 0;
+      const durB = Number.isFinite(b.duration) ? b.duration : 0;
+      return durB - durA;
+    });
+    return videos[0];
   }
 
   function sendPlaybackHeartbeat(force = false) {
@@ -90,7 +129,7 @@
     }
     lastHeartbeatAt = now;
 
-    const video = activeVideo || document.querySelector('video');
+    const video = pickActiveEpisodeVideo();
     const metrics = getVideoMetrics(video);
 
     safeSendMessage({
@@ -110,22 +149,28 @@
     video.__tvControllerAttached = true;
 
     video.addEventListener('play', () => {
+      if (isShortAdOrPreviewVideo(video)) return;
       activeVideo = video;
       lastVideoTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
       sendPlaybackHeartbeat(true);
     });
 
     video.addEventListener('playing', () => {
+      if (isShortAdOrPreviewVideo(video)) return;
       activeVideo = video;
       lastVideoTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
       sendPlaybackHeartbeat(true);
     });
 
     video.addEventListener('pause', () => {
+      if (isShortAdOrPreviewVideo(video)) return;
       sendPlaybackHeartbeat(true);
     });
 
     video.addEventListener('ended', () => {
+      if (isShortAdOrPreviewVideo(video)) return;
+      const metrics = getVideoMetrics(video);
+      if (!metrics.ended) return;
       activeVideo = video;
       if (!endedReported) {
         endedReported = true;
@@ -134,6 +179,7 @@
     });
 
     video.addEventListener('timeupdate', () => {
+      if (isShortAdOrPreviewVideo(video)) return;
       activeVideo = video;
       if (video.paused || video.ended || video.readyState < 2) {
         lastVideoTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
@@ -179,8 +225,10 @@
     (e) => {
       if (e.target && e.target.tagName === 'VIDEO') {
         attachVideo(e.target);
-        activeVideo = e.target;
-        sendPlaybackHeartbeat(true);
+        if (!isShortAdOrPreviewVideo(e.target)) {
+          activeVideo = e.target;
+          sendPlaybackHeartbeat(true);
+        }
       }
     },
     true

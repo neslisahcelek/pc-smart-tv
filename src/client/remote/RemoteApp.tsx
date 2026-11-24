@@ -11,10 +11,8 @@ import {
   Play,
   ExternalLink,
   Trash2,
-  Home,
   Undo2,
   Volume2,
-  Volume1,
   VolumeX,
   BookmarkCheck,
   ChevronUp,
@@ -43,6 +41,7 @@ import { resolveShortcutIconUrl } from '../../shared/platformIcons.js';
 import type { ShortcutItem, YouTubeSearchResult } from '../../shared/types.js';
 import type { YouTubeSearchResponse } from '../../server/youtube.js';
 import { TouchpadView } from './TouchpadView.js';
+import { RemoteControlsTab } from './RemoteControlsTab.js';
 
 function YouTubeIcon({ size = 20 }: { size?: number }) {
   return (
@@ -498,215 +497,15 @@ export function RemoteApp() {
       {/* Main Scrollable Tab Body */}
       <main className="remote-body">
         {activeTab === 'controls' && (
-          <div className="remote-tab-pane">
-            {/* Top Quick Actions */}
-            <div className="remote-quick-row">
-              <button
-                type="button"
-                className="remote-action-btn"
-                onClick={() => {
-                  sendCommand({ type: 'COMMAND', action: 'GO_HOME' });
-                  triggerFeedback('Ana Ekran');
-                }}
-              >
-                <span className="remote-action-icon">
-                  <Home size={22} strokeWidth={2.2} />
-                </span>
-                <span>Ana Ekran</span>
-              </button>
-
-              <button
-                type="button"
-                className="remote-action-btn"
-                onClick={() => {
-                  sendCommand({ type: 'COMMAND', action: 'GO_BACK' });
-                  triggerFeedback('Geri');
-                }}
-              >
-                <span className="remote-action-icon">
-                  <Undo2 size={22} strokeWidth={2.2} />
-                </span>
-                <span>Geri</span>
-              </button>
-
-              <button
-                type="button"
-                className="remote-action-btn remote-action-primary"
-                onClick={() => {
-                  sendCommand({ type: 'COMMAND', action: 'TOGGLE_PLAY' });
-                  triggerFeedback('Oynat / Duraklat');
-                }}
-              >
-                <span className="remote-action-icon">
-                  {serverState.playerStatus === 'playing' ? (
-                    <Pause size={22} strokeWidth={2.2} fill="currentColor" />
-                  ) : (
-                    <Play size={22} strokeWidth={2.2} fill="currentColor" />
-                  )}
-                </span>
-                <span>Oynat/Durdur</span>
-              </button>
-
-              <button
-                type="button"
-                className={`remote-action-btn ${serverState.muted ? 'is-active-danger' : ''}`}
-                onClick={() => {
-                  sendCommand({ type: 'COMMAND', action: 'TOGGLE_MUTE' });
-                  triggerFeedback(serverState.muted ? 'Ses Açıldı' : 'Sessize Alındı');
-                }}
-              >
-                <span className="remote-action-icon">
-                  {serverState.muted ? (
-                    <VolumeX size={22} strokeWidth={2.2} />
-                  ) : (
-                    <Volume2 size={22} strokeWidth={2.2} />
-                  )}
-                </span>
-                <span>{serverState.muted ? 'Sesi Aç' : 'Sessiz'}</span>
-              </button>
-            </div>
-
-            {/* Active TV Episode / Save Progress Prompt */}
-            {serverState.activeTabCandidate && (
-              <div className="remote-active-tab-card">
-                <header className="remote-active-tab-header">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                    <Tv size={16} strokeWidth={2.2} />
-                    TV'de Açık Dizi
-                  </span>
-                  <span>Canlı</span>
-                </header>
-                <div className="remote-active-tab-title">
-                  {serverState.activeTabCandidate.title || serverState.activeTabCandidate.url}
-                </div>
-                <button
-                  type="button"
-                  className="remote-btn remote-btn-accent remote-btn-full"
-                  onClick={() => {
-                    sendCommand({
-                      type: 'SAVE_PROGRESS',
-                      url: serverState.activeTabCandidate!.url,
-                      title: serverState.activeTabCandidate!.title
-                    });
-                    triggerFeedback('Kaldığın yer kaydedildi!');
-                  }}
-                >
-                  <BookmarkCheck size={16} strokeWidth={2.2} /> Kaldığım Yeri Kaydet
-                </button>
-              </div>
-            )}
-
-            {/* D-Pad Spatial Navigation Controller */}
-            <div className="remote-dpad-card">
-              <div className="remote-card-label">TV Ekranı Yönlendirme (D-Pad)</div>
-              <div className="remote-dpad-grid">
-                <div />
-                <button
-                  type="button"
-                  className="remote-dpad-btn"
-                  aria-label="Yukarı"
-                  onClick={() => sendCommand({ type: 'NAVIGATE', direction: 'UP' })}
-                >
-                  <ChevronUp size={28} strokeWidth={2.5} />
-                </button>
-                <div />
-
-                <button
-                  type="button"
-                  className="remote-dpad-btn"
-                  aria-label="Sol"
-                  onClick={() => sendCommand({ type: 'NAVIGATE', direction: 'LEFT' })}
-                >
-                  <ChevronLeft size={28} strokeWidth={2.5} />
-                </button>
-                <button
-                  type="button"
-                  className="remote-dpad-btn remote-dpad-ok"
-                  aria-label="Seç (OK)"
-                  onClick={() => {
-                    sendCommand({ type: 'NAVIGATE', direction: 'SELECT' });
-                    triggerFeedback('Seçildi (OK)');
-                  }}
-                >
-                  OK
-                </button>
-                <button
-                  type="button"
-                  className="remote-dpad-btn"
-                  aria-label="Sağ"
-                  onClick={() => sendCommand({ type: 'NAVIGATE', direction: 'RIGHT' })}
-                >
-                  <ChevronRight size={28} strokeWidth={2.5} />
-                </button>
-
-                <div />
-                <button
-                  type="button"
-                  className="remote-dpad-btn"
-                  aria-label="Aşağı"
-                  onClick={() => sendCommand({ type: 'NAVIGATE', direction: 'DOWN' })}
-                >
-                  <ChevronDown size={28} strokeWidth={2.5} />
-                </button>
-                <div />
-              </div>
-            </div>
-
-            {/* Volume Controls */}
-            <div className="remote-volume-card">
-              <header className="remote-volume-header">
-                <span>TV / Bilgisayar Ses Seviyesi</span>
-                <strong>{serverState.muted ? 'Sessiz (Mute)' : `%${serverState.volume}`}</strong>
-              </header>
-
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={serverState.volume}
-                className="remote-volume-slider"
-                aria-label="Ses Seviyesi"
-                onChange={(e) =>
-                  sendCommand({
-                    type: 'SET_VOLUME',
-                    volume: Number(e.target.value)
-                  })
-                }
-              />
-
-              <div className="remote-volume-buttons">
-                <button
-                  type="button"
-                  className="remote-btn remote-btn-secondary"
-                  onClick={() => sendCommand({ type: 'ADJUST_VOLUME', delta: -10 })}
-                >
-                  <Volume1 size={16} strokeWidth={2} /> Ses -10
-                </button>
-                <button
-                  type="button"
-                  className="remote-btn remote-btn-secondary"
-                  onClick={() => sendCommand({ type: 'COMMAND', action: 'TOGGLE_MUTE' })}
-                >
-                  {serverState.muted ? (
-                    <>
-                      <Volume2 size={16} strokeWidth={2} /> Sesi Aç
-                    </>
-                  ) : (
-                    <>
-                      <VolumeX size={16} strokeWidth={2} /> Sessiz
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="remote-btn remote-btn-secondary"
-                  onClick={() => sendCommand({ type: 'ADJUST_VOLUME', delta: 10 })}
-                >
-                  <Volume2 size={16} strokeWidth={2} /> Ses +10
-                </button>
-              </div>
-            </div>
-          </div>
+          <RemoteControlsTab
+            vestelTv={serverState.vestelTv}
+            playerStatus={serverState.playerStatus}
+            volume={serverState.volume}
+            muted={serverState.muted}
+            activeTabCandidate={serverState.activeTabCandidate}
+            sendCommand={sendCommand}
+            triggerFeedback={triggerFeedback}
+          />
         )}
 
         {activeTab === 'mouse' && (

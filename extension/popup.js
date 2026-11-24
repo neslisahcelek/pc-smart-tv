@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnSaveNow = document.getElementById('btnSaveNow');
   const btnAddSite = document.getElementById('btnAddSite');
   const linkOptions = document.getElementById('linkOptions');
+  const toggleAutoSkipAds = document.getElementById('toggleAutoSkipAds');
+  const adSkipMeta = document.getElementById('adSkipMeta');
   const toast = document.getElementById('toast');
 
   function showToast(msg) {
@@ -38,7 +40,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const { isDizi, isPending, watchState, url, title, hostname, settings } = response;
+  const {
+    isDizi,
+    isAdSkipSite,
+    tabAdsSkipped = 0,
+    adsSkippedTotal = 0,
+    isPending,
+    watchState,
+    url,
+    title,
+    hostname,
+    settings
+  } = response;
+
+  function updateAdSkipMeta(enabled) {
+    if (!enabled) {
+      adSkipMeta.textContent = 'Kapalı';
+      return;
+    }
+    if (tabAdsSkipped > 0) {
+      adSkipMeta.textContent = `Bu sekmede ${tabAdsSkipped} geçildi • Toplam ${adsSkippedTotal}`;
+    } else if (isAdSkipSite) {
+      adSkipMeta.textContent =
+        adsSkippedTotal > 0
+          ? `Bu sitede aktif • Toplam ${adsSkippedTotal} geçildi`
+          : 'Bu sitede aktif (5 sn önü reklamlar)';
+    } else {
+      adSkipMeta.textContent =
+        adsSkippedTotal > 0
+          ? `Dizi sitelerinde aktif • Toplam ${adsSkippedTotal}`
+          : 'Yalnızca dizi sitelerinde aktif';
+    }
+  }
+
+  const initialSkipEnabled = settings.autoSkipAds !== false;
+  toggleAutoSkipAds.checked = initialSkipEnabled;
+  updateAdSkipMeta(initialSkipEnabled);
+
+  toggleAutoSkipAds.addEventListener('change', async () => {
+    const enabled = toggleAutoSkipAds.checked;
+    const res = await chrome.runtime.sendMessage({ type: 'SET_AD_SKIP_ENABLED', enabled });
+    if (res && res.ok) {
+      updateAdSkipMeta(enabled);
+      showToast(enabled ? 'Otomatik reklam geçme açıldı' : 'Otomatik reklam geçme kapatıldı');
+    }
+  });
 
   // Test server connectivity
   try {

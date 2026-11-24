@@ -104,6 +104,66 @@ export interface TVState {
   progress?: ProgressEntry[];
   activeTabCandidate?: ActiveTabCandidate | null;
   deletedWatchLaterVideoIds?: string[];
+  vestelTv?: VestelTvStatus;
+}
+
+export type VestelKeyName =
+  | 'POWER'
+  | 'OK'
+  | 'UP'
+  | 'DOWN'
+  | 'LEFT'
+  | 'RIGHT'
+  | 'BACK'
+  | 'EXIT'
+  | 'MENU'
+  | 'INFO'
+  | 'SOURCE'
+  | 'TV_DTV'
+  | 'CH_UP'
+  | 'CH_DOWN'
+  | 'VOL_UP'
+  | 'VOL_DOWN'
+  | 'MUTE'
+  | 'NUM_0'
+  | 'NUM_1'
+  | 'NUM_2'
+  | 'NUM_3'
+  | 'NUM_4'
+  | 'NUM_5'
+  | 'NUM_6'
+  | 'NUM_7'
+  | 'NUM_8'
+  | 'NUM_9'
+  | 'RED'
+  | 'GREEN'
+  | 'YELLOW'
+  | 'BLUE';
+
+export type VestelProtocolVariant = 'auto' | 'vr_remote' | 'smartcenter' | 'raw_tcp';
+
+export interface FavoriteTvChannel {
+  id: string;
+  name: string;
+  channelNumber: number;
+}
+
+export interface VestelTvStatus {
+  configuredHost: string | null;
+  discoveredHost: string | null;
+  activeHost: string | null;
+  connected: boolean;
+  discovering: boolean;
+  protocolVariant: VestelProtocolVariant;
+  detectedVariant: Exclude<VestelProtocolVariant, 'auto'> | null;
+  keepAwakeEnabled: boolean;
+  keepAwakeIntervalMinutes: number;
+  lastKeepAwakeAt: number | null;
+  lastError: string | null;
+  favoriteChannels: FavoriteTvChannel[];
+  volume?: number;
+  muted?: boolean;
+  volumeSynced?: boolean;
 }
 
 export type MouseButton = 'left' | 'right' | 'middle' | 'double';
@@ -261,6 +321,42 @@ export type ValidatedClientMessage =
   | {
       type: 'TYPE_TEXT';
       text: string;
+    }
+  | {
+      type: 'TV_REMOTE_KEY';
+      key: VestelKeyName;
+    }
+  | {
+      type: 'TV_DISMISS_SLEEP_PROMPT';
+      strategy?: 'exit' | 'right_ok';
+    }
+  | {
+      type: 'TV_TUNE_CHANNEL';
+      channelNumber: number;
+    }
+  | {
+      type: 'TV_DISCOVER';
+    }
+  | {
+      type: 'TV_SET_CONFIG';
+      host?: string | null;
+      protocolVariant?: VestelProtocolVariant;
+      keepAwakeEnabled?: boolean;
+      keepAwakeIntervalMinutes?: number;
+    }
+  | {
+      type: 'TV_SAVE_FAVORITE_CHANNEL';
+      id?: string;
+      name: string;
+      channelNumber: number;
+    }
+  | {
+      type: 'TV_DELETE_FAVORITE_CHANNEL';
+      id: string;
+    }
+  | {
+      type: 'TV_SET_VOLUME';
+      volume: number;
     };
 
 export type ServerBroadcastMessage =
